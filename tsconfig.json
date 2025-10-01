@@ -1,0 +1,23 @@
+{
+	"compilerOptions": {
+		"allowUnreachableCode": false,
+		"allowUnusedLabels": false,
+		"exactOptionalPropertyTypes": true,
+		"lib": [
+			"ES2022"
+		],
+		"module": "Node16",
+		"noImplicitOverride": true,
+		"noImplicitReturns": true,
+		"noPropertyAccessFromIndexSignature": true,
+		"noUncheckedIndexedAccess": true,
+		"noUncheckedSideEffectImports": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"outDir": "out",
+		"rootDir": "src",
+		"sourceMap": true,
+		"strict": true,
+		"target": "ES2022"
+	}
+}

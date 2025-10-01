@@ -1,0 +1,43 @@
+{
+  "[markdown]": {
+    "files.trimTrailingWhitespace": false
+  },
+  "cSpell.words": [
+    "htmx",
+    "keml",
+    "Kuzmenko",
+    "vscode-html-languageservice"
+  ],
+  "editor.codeActionsOnSave": {
+    "source.addMissingImports": "always",
+    "source.fixAll": "always",
+    "source.organizeImports": "always",
+    "source.removeUnused": "always",
+    "source.removeUnusedImports": "always",
+    "source.sort.json": "always",
+    "source.sortImports": "always",
+    "source.unusedImports": "always"
+  },
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.dragAndDrop": false,
+  "editor.emptySelectionClipboard": false,
+  "editor.formatOnSave": true,
+  "editor.rulers": [
+    80
+  ],
+  "editor.tabSize": 2,
+  "files.eol": "\n",
+  "files.exclude": {
+    "out": false // set this to true to hide the "out" folder with the compiled JS files
+  },
+  "files.insertFinalNewline": true,
+  "files.trimFinalNewlines": true,
+  "files.trimTrailingWhitespace": true,
+  "prettier.arrowParens": "avoid",
+  "prettier.experimentalTernaries": true,
+  "search.exclude": {
+    "out": true // set this to false to include "out" folder in search results
+  },
+  // Turn off tsc task auto detection since we have the necessary tasks as npm scripts
+  "typescript.tsc.autoDetect": "off"
+}

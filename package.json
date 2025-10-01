@@ -1,0 +1,118 @@
+{
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "author": "Eugene Kuzmenko",
+  "bugs": {
+    "url": "https://github.com/thealjey/keml-vscode/issues"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "configuration": {
+      "properties": {
+        "keml.actionUndefinedSeverity": {
+          "default": "Error",
+          "enum": [
+            "Error",
+            "Warning",
+            "Information",
+            "Hint",
+            "Disable"
+          ],
+          "markdownDescription": "Controls how undefined actions are reported in the workspace (choose **Disable** to ignore undefined actions).",
+          "type": "string"
+        },
+        "keml.actionUnusedSeverity": {
+          "default": "Warning",
+          "enum": [
+            "Error",
+            "Warning",
+            "Information",
+            "Hint",
+            "Disable"
+          ],
+          "markdownDescription": "Controls how unused actions are reported in the workspace (choose **Disable** to ignore unused actions).",
+          "type": "string"
+        },
+        "keml.include": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "markdownDescription": "Configure [glob patterns](https://code.visualstudio.com/docs/editor/codebasics#_advanced-search-options) to include when scanning, even if they are normally excluded by `#search.exclude#`.\n\nBy default (empty array), all matches for `#keml.languageIds#` are scanned.\n\n**Example:**  \n`[\"**/templates/**\", \"**/build/**\"]`",
+          "type": "array"
+        },
+        "keml.languageIds": {
+          "default": [
+            "html"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "markdownDescription": "Configure [language identifiers](https://code.visualstudio.com/docs/languages/identifiers) where this extension is active.\n\nAll files in these languages will be scanned to collect metadata.\n\n*Note: Files with these language IDs are parsed as HTML. If they are not strictly HTML, they must still be HTML-like enough to be parsed successfully.*\n\n**Example:**  \n`[\"html\", \"php\", \"vue\"]`",
+          "type": "array"
+        }
+      },
+      "title": "KEML"
+    }
+  },
+  "dependencies": {
+    "vscode-html-languageservice": "^5.5.2"
+  },
+  "description": "IntelliSense for KEML in Visual Studio Code.",
+  "devDependencies": {
+    "@types/node": "22.x",
+    "@types/vscode": "^1.104.0",
+    "typescript": "^5.9.3"
+  },
+  "displayName": "KEML",
+  "engines": {
+    "vscode": "^1.104.0"
+  },
+  "extensionDependencies": [
+    "vscode.html",
+    "vscode.html-language-features"
+  ],
+  "files": [
+    "CHANGELOG.md",
+    "images/**",
+    "LICENSE",
+    "out/extension.js",
+    "package.json",
+    "README.md"
+  ],
+  "galleryBanner": {
+    "color": "#1f1f1f",
+    "theme": "dark"
+  },
+  "homepage": "https://thealjey.github.io/keml/",
+  "icon": "images/icon.png",
+  "keywords": [
+    "declarative",
+    "extension",
+    "html",
+    "htmx alternative",
+    "interactive html",
+    "keml",
+    "no javascript",
+    "progressive enhancement",
+    "server-rendered",
+    "vscode"
+  ],
+  "license": "MIT",
+  "main": "out/extension.js",
+  "name": "keml-vscode",
+  "publisher": "eugene-kuzmenko",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/thealjey/keml-vscode.git"
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "vscode:prepublish": "npm run compile",
+    "watch": "tsc -watch -p ./"
+  },
+  "version": "0.0.1"
+}
