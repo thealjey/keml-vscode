@@ -58,14 +58,13 @@
       "title": "KEML"
     }
   },
-  "dependencies": {
-    "vscode-html-languageservice": "^5.5.2"
-  },
   "description": "IntelliSense for KEML in Visual Studio Code.",
   "devDependencies": {
     "@types/node": "22.x",
     "@types/vscode": "^1.104.0",
-    "typescript": "^5.9.3"
+    "dependency-cruiser": "^17.0.1",
+    "esbuild": "^0.25.10",
+    "vscode-html-languageservice": "^5.5.2"
   },
   "displayName": "KEML",
   "engines": {
@@ -77,7 +76,7 @@
   ],
   "files": [
     "CHANGELOG.md",
-    "images/**",
+    "images/icon.png",
     "LICENSE",
     "out/extension.js",
     "package.json",
@@ -110,9 +109,10 @@
     "url": "https://github.com/thealjey/keml-vscode.git"
   },
   "scripts": {
-    "compile": "tsc -p ./",
+    "compile": "esbuild src/extension.ts --bundle --outdir=out --external:vscode --external:node:path --format=cjs --minify",
+    "precompile": "depcruise 'src/*.ts'",
     "vscode:prepublish": "npm run compile",
-    "watch": "tsc -watch -p ./"
+    "watch": "esbuild src/extension.ts --bundle --outdir=out --external:vscode --external:node:path --format=cjs --sourcemap --watch=forever &"
   },
   "version": "0.0.1"
 }
