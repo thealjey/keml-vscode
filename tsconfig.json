@@ -1,12 +1,15 @@
 {
 	"compilerOptions": {
+		"allowImportingTsExtensions": true,
 		"allowUnreachableCode": false,
 		"allowUnusedLabels": false,
+		"checkJs": true,
 		"exactOptionalPropertyTypes": true,
 		"lib": [
 			"ES2022"
 		],
 		"module": "Node16",
+		"noEmit": true,
 		"noImplicitOverride": true,
 		"noImplicitReturns": true,
 		"noPropertyAccessFromIndexSignature": true,
@@ -14,10 +17,16 @@
 		"noUncheckedSideEffectImports": true,
 		"noUnusedLocals": true,
 		"noUnusedParameters": true,
-		"outDir": "out",
-		"rootDir": "src",
 		"sourceMap": true,
 		"strict": true,
-		"target": "ES2022"
-	}
+		"target": "ES2022",
+		"types": [
+			"vitest/importMeta"
+		]
+	},
+	"include": [
+		"src/*",
+		".dependency-cruiser.mjs",
+		"vitest.config.mts"
+	]
 }
