@@ -13,7 +13,9 @@ interface ParsedToken {
   characterDelta: number;
 }
 
-export const INVALID_PATTERN = /[\(\)\[\]\<\>\{\}]/g;
+export const INVALID_PATTERN = /[\(\)\[\]\<\>\{\}]/;
+
+const GLOBAL_INVALID_PATTERN = new RegExp(INVALID_PATTERN, "g");
 
 /**
  * Parses an input string into individual tokens, skipping invalid patterns.
@@ -24,7 +26,7 @@ export const INVALID_PATTERN = /[\(\)\[\]\<\>\{\}]/g;
 export const parseTokens = (input: string) => {
   const result: ParsedToken[] = [];
   const len = input.length;
-  const matches = Array.from(input.matchAll(INVALID_PATTERN));
+  const matches = Array.from(input.matchAll(GLOBAL_INVALID_PATTERN));
   const first = matches[0];
   let i = 0;
   let characterDelta = -1;

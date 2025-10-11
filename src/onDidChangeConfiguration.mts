@@ -8,8 +8,7 @@ import { configure } from "./configure.mts";
  * @returns Result of configuration update or a truthy value if unaffected.
  */
 export const onDidChangeConfiguration = (e: ConfigurationChangeEvent) =>
-  !e.affectsConfiguration("keml") ||
-  !e.affectsConfiguration("search") ||
+  (e.affectsConfiguration("keml") || e.affectsConfiguration("search")) &&
   extern.configure();
 
 let extern = { configure };
@@ -32,36 +31,46 @@ if (import.meta.vitest) {
       extern = origExtern;
     });
 
-    it("returns true if keml is not affected", () => {
+    it("does not call configure if neither keml nor search are affected", () => {
+      const e = { affectsConfiguration: fn(() => false) };
+      extern.configure = fn();
+
+      const result = onDidChangeConfiguration(e as any);
+
+      expect(extern.configure).not.toHaveBeenCalled();
+      expect(result).toBe(false);
+    });
+
+    it("calls configure if keml is affected", () => {
+      const e = { affectsConfiguration: fn((name: string) => name === "keml") };
+      extern.configure = fn(() => "configured") as any;
+
+      const result = onDidChangeConfiguration(e as any);
+
+      expect(extern.configure).toHaveBeenCalled();
+      expect(result).toBe("configured");
+    });
+
+    it("calls configure if search is affected", () => {
       const e = {
         affectsConfiguration: fn((name: string) => name === "search"),
-      };
-
-      const result = onDidChangeConfiguration(e as any);
-
-      expect(result).toBe(true);
-    });
-
-    it("returns true if keml is affected but search is not", () => {
-      const e = {
-        affectsConfiguration: fn((name: string) => name === "keml"),
-      };
-
-      const result = onDidChangeConfiguration(e as any);
-
-      expect(result).toBe(true);
-    });
-
-    it("calls configure and returns its result if both keml and search are affected", () => {
-      const e = {
-        affectsConfiguration: fn(() => true),
       };
       extern.configure = fn(() => "configured") as any;
 
       const result = onDidChangeConfiguration(e as any);
 
-      expect(result).toBe("configured");
       expect(extern.configure).toHaveBeenCalled();
+      expect(result).toBe("configured");
+    });
+
+    it("calls configure if both keml and search are affected", () => {
+      const e = { affectsConfiguration: fn(() => true) };
+      extern.configure = fn(() => "configured") as any;
+
+      const result = onDidChangeConfiguration(e as any);
+
+      expect(extern.configure).toHaveBeenCalled();
+      expect(result).toBe("configured");
     });
   });
 }

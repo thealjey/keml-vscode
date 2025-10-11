@@ -570,12 +570,16 @@ export class Document {
    * @returns A map of attribute names to their details.
    */
   private parseNodeAttrs(node: LSNode) {
-    const { attributes, start, startTagEnd, tag, end } = node;
+    const { attributes, start, startTagEnd, tag } = node;
     const newNode = new extern.Node(node);
 
-    this.ranges.push([start, end, newNode]);
+    if (!startTagEnd) {
+      return newNode.attributes;
+    }
 
-    if (!attributes || !startTagEnd || !tag) {
+    this.ranges.push([start, startTagEnd, newNode]);
+
+    if (!attributes || !tag) {
       return newNode.attributes;
     }
 
@@ -589,7 +593,7 @@ export class Document {
       head,
       tail,
       offset,
-      ending;
+      end;
 
     while (
       tokenEnd < startTagEnd &&
@@ -611,14 +615,14 @@ export class Document {
         head = HEAD_PATTERN.exec(tokenText)![0].length;
         tail = TAIL_PATTERN.exec(tokenText)![0].length * -1;
         offset = tokenOffset + head;
-        ending = tokenEnd + tail;
+        end = tokenEnd + tail;
 
         newNode.setAttribute(name, {
           name,
           value: tokenText.slice(head, tail),
           start: offset,
-          end: ending,
-          range: this.rangeBetween(offset, ending),
+          end,
+          range: this.rangeBetween(offset, end),
           fullRange: this.rangeBetween(nameOffset, tokenEnd),
         });
         name = undefined;
@@ -1016,6 +1020,10 @@ if (import.meta.vitest) {
 
     it("createScanner - no tag", () => {
       new TestDocument('< value="lol">');
+    });
+
+    it("createScanner - malformed", () => {
+      new TestDocument("<input");
     });
 
     it("createScanner", () => {

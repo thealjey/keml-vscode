@@ -1,4 +1,7 @@
 import { Range } from "vscode";
+import { INVALID_PATTERN } from "./parseTokens.mts";
+
+const NON_WHITESPACE_PATTERN = /^\S+$/;
 
 /**
  * Adds a range to the array associated with a key in the provided store.
@@ -12,7 +15,7 @@ export const addRange = (
   key: string,
   range: Range
 ) => {
-  if (key) {
+  if (NON_WHITESPACE_PATTERN.test(key) && !INVALID_PATTERN.test(key)) {
     store.get(key)?.push(range) ?? store.set(key, [range]);
   }
 };
@@ -22,7 +25,7 @@ if (import.meta.vitest) {
   const { describe, it, expect } = import.meta.vitest;
 
   describe("addRange", () => {
-    it("adds ranges to the map under the specified key", () => {
+    it("adds a new key or appends to an existing one for valid keys", () => {
       const store = new Map();
       const range1 = {} as any;
       const range2 = {} as any;
@@ -31,12 +34,21 @@ if (import.meta.vitest) {
       addRange(store, "foo", range2);
 
       const result = store.get("foo");
-      expect(result).toHaveLength(2);
-      expect(result[0]).toBe(range1);
-      expect(result[1]).toBe(range2);
+      expect(result).toEqual([range1, range2]);
+    });
 
+    it("ignores empty or whitespace-only keys", () => {
+      const store = new Map();
       addRange(store, "", {} as any);
-      expect(store.size).toBe(1);
+      addRange(store, "   ", {} as any);
+      expect(store.size).toBe(0);
+    });
+
+    it("ignores keys containing parentheses or braces", () => {
+      const store = new Map();
+      addRange(store, "foo(bar)", {} as any);
+      addRange(store, "{baz}", {} as any);
+      expect(store.size).toBe(0);
     });
   });
 }
