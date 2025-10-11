@@ -7,7 +7,6 @@ import {
   Range,
   TextDocument,
   TextDocumentChangeEvent,
-  TextDocumentContentChangeEvent,
   Uri,
 } from "vscode";
 import {
@@ -69,17 +68,6 @@ const validPosition = [
   "append",
 ];
 const DEP_TPL = t`'${"name"}' without ${"article"} '${"depends"}' (or 'x-${"depends"}') does nothing.`;
-
-/**
- * Represents a document update task, potentially linked to the next task in a
- * queue.
- */
-interface UpdateTask extends TextDocumentChangeEvent {
-  /**
-   * Reference to the next update task in the chain, if any.
-   */
-  next?: UpdateTask;
-}
 
 /**
  * Represents a document with diagnostics, references, and definitions.
@@ -146,21 +134,6 @@ export class Document {
   private ranges!: [number, number, Node][];
 
   /**
-   * Identifier of the scheduled update timeout.
-   */
-  private timeoutId: NodeJS.Timeout | undefined;
-
-  /**
-   * The first pending update task in the queue.
-   */
-  private firstUpdateTask: UpdateTask | undefined;
-
-  /**
-   * The last pending update task in the queue.
-   */
-  private lastUpdateTask: UpdateTask | undefined;
-
-  /**
    * Creates a new Document instance.
    *
    * @param doc - The text document to wrap.
@@ -206,7 +179,6 @@ export class Document {
    * Returns the language identifier of the document.
    */
   get languageId() {
-    this.update();
     return this.doc.languageId;
   }
 
@@ -214,7 +186,6 @@ export class Document {
    * Returns the version number of the document.
    */
   get version() {
-    this.update();
     return this.doc.version;
   }
 
@@ -225,7 +196,6 @@ export class Document {
    * @returns The extracted text.
    */
   getText(range?: Range | undefined) {
-    this.update();
     return this.doc.getText(range);
   }
 
@@ -236,7 +206,6 @@ export class Document {
    * @returns The position in the document.
    */
   positionAt(offset: number) {
-    this.update();
     return this.doc.positionAt(offset);
   }
 
@@ -247,7 +216,6 @@ export class Document {
    * @returns The character offset.
    */
   offsetAt(position: Position) {
-    this.update();
     return this.doc.offsetAt(position);
   }
 
@@ -270,7 +238,6 @@ export class Document {
    * @returns The word range at the position.
    */
   getWordRangeAtPosition(position: Position, regex = WORD_PATTERN) {
-    this.update();
     return this.doc.getWordRangeAtPosition(position, regex);
   }
 
@@ -281,7 +248,6 @@ export class Document {
    * @returns The node at the offset or undefined.
    */
   findNodeAt(offset: number) {
-    this.update();
     let low = 0;
     let high = this.ranges.length - 1;
     let mid, range;
@@ -322,7 +288,6 @@ export class Document {
    * @returns True if applicable, false otherwise.
    */
   isApplicable() {
-    this.update();
     return Document.isApplicable(this.languageId, this.uri);
   }
 
@@ -506,48 +471,26 @@ export class Document {
   }
 
   /**
-   * Schedules a document update after a change event.
+   * Updates the document and re-parses its content after a change event.
    *
    * @param event - The text document change event.
    */
-  scheduleUpdate(event: TextDocumentChangeEvent) {
-    clearTimeout(this.timeoutId);
-    this.lastUpdateTask =
-      this.lastUpdateTask == null
-        ? (this.firstUpdateTask = event)
-        : (this.lastUpdateTask.next = event);
-    this.timeoutId = setTimeout(this.update, 300);
-  }
-
-  /**
-   * Updates the document and re-parses its content.
-   */
-  private update = () => {
-    if (this.firstUpdateTask == null) {
-      return;
-    }
-    let task: UpdateTask | undefined;
-    const contentChanges: TextDocumentContentChangeEvent[] = [];
-
-    while ((task = this.firstUpdateTask)) {
-      this.firstUpdateTask = task.next;
-      this.doc = task.document;
-      contentChanges.push(...task.contentChanges);
-    }
-    this.lastUpdateTask = undefined;
+  update({ document, contentChanges }: TextDocumentChangeEvent) {
+    this.doc = document;
+    this.uri = this.doc.uri;
 
     if (!contentChanges.length) {
       return;
     }
-    this.uri = this.doc.uri;
+
     this.textDoc = LSTextDocument.update(
       this.textDoc,
-      contentChanges,
+      contentChanges.slice(),
       this.version
     );
     this.parseHTMLDocument();
     extern.updateDiagnosticCollection();
-  };
+  }
 
   /**
    * Creates a scanner for parsing the document text.
@@ -1197,7 +1140,7 @@ if (import.meta.vitest) {
 
     it("update - empty", () => {
       const cur = new TestDocument("");
-      cur.scheduleUpdate({
+      cur.update({
         document: new MockTextDocument(""),
         contentChanges: [] as any,
         reason: undefined,
@@ -1208,19 +1151,14 @@ if (import.meta.vitest) {
 
     it("update", () => {
       const cur = new TestDocument("");
-      cur.scheduleUpdate({
+      cur.update({
         document: new MockTextDocument(""),
         contentChanges: ["bar", "baz"] as any,
         reason: undefined,
       });
-      cur.scheduleUpdate({
-        document: new MockTextDocument(""),
-        contentChanges: ["lol"] as any,
-        reason: undefined,
-      });
       runAllTimers();
       expect(update).toBeCalledTimes(1);
-      expect(update.mock.calls[0]![1]).toEqual(["bar", "baz", "lol"]);
+      expect(update.mock.calls[0]![1]).toEqual(["bar", "baz"]);
     });
 
     it("languageId", () => {

@@ -104,7 +104,7 @@ export const populateDocs = async () => {
  * @param e - The text document change event.
  */
 export const onDidEdit = (e: TextDocumentChangeEvent) =>
-  extern.docs.get(e.document.uri.toString())?.scheduleUpdate(e);
+  extern.docs.get(e.document.uri.toString())?.update(e);
 
 /**
  * Handles updates when a text document is renamed.
@@ -388,14 +388,14 @@ if (import.meta.vitest) {
       const mockEvent = {
         document: { uri: { toString: () => "uri1" } },
       } as any;
-      const scheduleUpdate = fn();
-      const mockDoc = { scheduleUpdate };
+      const update = fn();
+      const mockDoc = { update };
       extern.docs = new Map([["uri1", mockDoc]]) as any;
 
       onDidEdit(mockEvent);
 
-      expect(scheduleUpdate).toHaveBeenCalledTimes(1);
-      expect(scheduleUpdate).toHaveBeenCalledWith(mockEvent);
+      expect(update).toHaveBeenCalledTimes(1);
+      expect(update).toHaveBeenCalledWith(mockEvent);
     });
 
     it("onDidEdit - does nothing if the doc does not exist", () => {

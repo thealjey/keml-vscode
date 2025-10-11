@@ -15,12 +15,12 @@ export const isAllowedAttr = (attrData: IAttributeData) => {
   const attributes = extern.getAttributes();
 
   return extern.isEventFilter(name)
-    ? `on${name.slice(name.indexOf(":"))}` in attributes ||
-        `x-on${name.slice(name.indexOf(":"))}` in attributes
+    ? attributes.has(`on${name.slice(name.indexOf(":"))}`) ||
+        attributes.has(`x-on${name.slice(name.indexOf(":"))}`)
     : extern.isPosition(name)
-    ? "render" in attributes || "x-render" in attributes
+    ? attributes.has("render") || attributes.has("x-render")
     : extern.isOnDependent(name)
-    ? "on" in attributes || "x-on" in attributes
+    ? attributes.has("on") || attributes.has("x-on")
     : true;
 };
 
@@ -47,7 +47,7 @@ if (import.meta.vitest) {
     // isEventFilter true, key exists
     it("isEventFilter true with matching key returns true", () => {
       const attrData = { name: "event:click" };
-      extern.getAttributes = fn(() => ({ "on:click": true })) as any;
+      extern.getAttributes = fn(() => new Set(["on:click"])) as any;
       extern.isEventFilter = fn(() => true);
       extern.isPosition = fn(() => false) as any;
       extern.isOnDependent = fn(() => false);
@@ -58,7 +58,7 @@ if (import.meta.vitest) {
     // isEventFilter true, key missing
     it("isEventFilter true with no matching key returns false", () => {
       const attrData = { name: "event:click" };
-      extern.getAttributes = fn(() => ({})) as any;
+      extern.getAttributes = fn(() => new Set()) as any;
       extern.isEventFilter = fn(() => true);
       extern.isPosition = fn(() => false) as any;
       extern.isOnDependent = fn(() => false);
@@ -69,7 +69,7 @@ if (import.meta.vitest) {
     // isPosition true, key exists
     it("isPosition true with matching key returns true", () => {
       const attrData = { name: "posAttr" };
-      extern.getAttributes = fn(() => ({ render: true })) as any;
+      extern.getAttributes = fn(() => new Set(["render"])) as any;
       extern.isEventFilter = fn(() => false);
       extern.isPosition = fn(() => true) as any;
       extern.isOnDependent = fn(() => false);
@@ -80,7 +80,7 @@ if (import.meta.vitest) {
     // isPosition true, key missing
     it("isPosition true with no matching key returns false", () => {
       const attrData = { name: "posAttr" };
-      extern.getAttributes = fn(() => ({})) as any;
+      extern.getAttributes = fn(() => new Set()) as any;
       extern.isEventFilter = fn(() => false);
       extern.isPosition = fn(() => true) as any;
       extern.isOnDependent = fn(() => false);
@@ -91,7 +91,7 @@ if (import.meta.vitest) {
     // isOnDependent true, key exists
     it("isOnDependent true with matching key returns true", () => {
       const attrData = { name: "onAttr" };
-      extern.getAttributes = fn(() => ({ on: true })) as any;
+      extern.getAttributes = fn(() => new Set(["on"])) as any;
       extern.isEventFilter = fn(() => false);
       extern.isPosition = fn(() => false) as any;
       extern.isOnDependent = fn(() => true);
@@ -102,7 +102,7 @@ if (import.meta.vitest) {
     // isOnDependent true, key missing
     it("isOnDependent true with no matching key returns false", () => {
       const attrData = { name: "onAttr" };
-      extern.getAttributes = fn(() => ({})) as any;
+      extern.getAttributes = fn(() => new Set()) as any;
       extern.isEventFilter = fn(() => false);
       extern.isPosition = fn(() => false) as any;
       extern.isOnDependent = fn(() => true);
@@ -113,7 +113,7 @@ if (import.meta.vitest) {
     // none of the filters match
     it("returns true if none of the filters match", () => {
       const attrData = { name: "otherAttr" };
-      extern.getAttributes = fn(() => ({})) as any;
+      extern.getAttributes = fn(() => new Set()) as any;
       extern.isEventFilter = fn(() => false);
       extern.isPosition = fn(() => false) as any;
       extern.isOnDependent = fn(() => false);
