@@ -1,7 +1,5 @@
 import { Range } from "vscode";
-import { INVALID_PATTERN } from "./parseTokens.mts";
-
-const NON_WHITESPACE_PATTERN = /^\S+$/;
+import { isValidToken } from "./isValidToken.mts";
 
 /**
  * Adds a range to the array associated with a key in the provided store.
@@ -14,40 +12,53 @@ export const addRange = (
   store: Map<string, Range[]>,
   key: string,
   range: Range
-) => {
-  if (NON_WHITESPACE_PATTERN.test(key) && !INVALID_PATTERN.test(key)) {
-    store.get(key)?.push(range) ?? store.set(key, [range]);
-  }
-};
+) =>
+  extern.isValidToken(key) &&
+  (store.get(key)?.push(range) ?? store.set(key, [range]));
+
+let extern = { isValidToken };
 
 /* v8 ignore start */
 if (import.meta.vitest) {
-  const { describe, it, expect } = import.meta.vitest;
+  const {
+    describe,
+    it,
+    expect,
+    afterAll,
+    vi: { fn },
+  } = import.meta.vitest;
+  const origExtern = extern;
+
+  extern = {} as typeof extern;
 
   describe("addRange", () => {
-    it("adds a new key or appends to an existing one for valid keys", () => {
+    afterAll(() => {
+      extern = origExtern;
+    });
+
+    it("adds a new key or appends to an existing one when isValidToken returns true", () => {
       const store = new Map();
       const range1 = {} as any;
       const range2 = {} as any;
 
+      extern.isValidToken = fn(() => true);
+
       addRange(store, "foo", range1);
       addRange(store, "foo", range2);
 
-      const result = store.get("foo");
-      expect(result).toEqual([range1, range2]);
+      expect(extern.isValidToken).toHaveBeenCalledTimes(2);
+      expect(store.get("foo")).toEqual([range1, range2]);
     });
 
-    it("ignores empty or whitespace-only keys", () => {
+    it("does nothing when isValidToken returns false", () => {
       const store = new Map();
-      addRange(store, "", {} as any);
-      addRange(store, "   ", {} as any);
-      expect(store.size).toBe(0);
-    });
+      const range = {} as any;
 
-    it("ignores keys containing parentheses or braces", () => {
-      const store = new Map();
-      addRange(store, "foo(bar)", {} as any);
-      addRange(store, "{baz}", {} as any);
+      extern.isValidToken = fn(() => false);
+
+      addRange(store, "badKey", range);
+
+      expect(extern.isValidToken).toHaveBeenCalledWith("badKey");
       expect(store.size).toBe(0);
     });
   });

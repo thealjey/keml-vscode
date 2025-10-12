@@ -115,9 +115,10 @@
     "compile": "esbuild src/extension.mts --bundle --outdir=out --external:vscode --external:node:path --format=cjs --define:import.meta.vitest=false --minify",
     "package": "vsce package",
     "precompile": "depcruise --config .dependency-cruiser.mjs 'src/*.mts'",
+    "publish": "vsce publish",
     "test": "vitest run",
     "vscode:prepublish": "npm run compile",
     "watch": "esbuild src/extension.mts --bundle --outdir=out --external:vscode --external:node:path --format=cjs --define:import.meta.vitest=false --sourcemap --watch=forever &"
   },
-  "version": "0.0.2"
+  "version": "0.0.3"
 }

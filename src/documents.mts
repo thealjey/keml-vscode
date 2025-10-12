@@ -138,6 +138,15 @@ export const onDidRename = async ({
  */
 export const onDidDeleteUri = (uri: Uri) => extern.docs.delete(uri.toString());
 
+/**
+ * Handles closing files, cleaning up the ones that do not physically exist on
+ * disk.
+ *
+ * @param doc
+ */
+const onDidClose = ({ uri }: TextDocument) =>
+  uri.scheme === "file" || extern.onDidDeleteUri(uri);
+
 export const onDidCreate = setDoc(false);
 export const onDidChange = setDoc(true);
 export const onDidCreateUri = withUri(onDidCreate);
@@ -152,6 +161,7 @@ export const onDidCreateFilesDiagnostics = withDiagnostics(onDidCreateFiles);
 export const onDidDeleteFilesDiagnostics = withDiagnostics(onDidDeleteFiles);
 export const onDidCreateDiagnostics = withDiagnostics(onDidCreate);
 export const onDidRenameFilesDiagnostics = withDiagnostics(onDidRenameFiles);
+export const onDidCloseDiagnostics = withDiagnostics(onDidClose);
 
 let extern = {
   window,
@@ -162,6 +172,7 @@ let extern = {
   updateDiagnosticCollection,
   onDidCreate,
   onDidCreateUri,
+  onDidDeleteUri,
 };
 
 /* v8 ignore start */
@@ -439,6 +450,27 @@ if (import.meta.vitest) {
       onDidDeleteUri(uri);
 
       expect(extern.docs.has("doc1")).toBe(false);
+    });
+
+    it("onDidClose - does nothing when uri.scheme is 'file'", () => {
+      const mockUri = { scheme: "file" } as any;
+      const mockDoc = { uri: mockUri } as any;
+      extern.onDidDeleteUri = fn();
+
+      onDidClose(mockDoc);
+
+      expect(extern.onDidDeleteUri).not.toHaveBeenCalled();
+    });
+
+    it("onDidClose - calls onDidDeleteUri when uri.scheme is not 'file'", () => {
+      const mockUri = { scheme: "untitled" } as any;
+      const mockDoc = { uri: mockUri } as any;
+      const mockDelete = fn();
+      extern.onDidDeleteUri = mockDelete;
+
+      onDidClose(mockDoc);
+
+      expect(mockDelete).toHaveBeenCalledWith(mockUri);
     });
   });
 }

@@ -47,6 +47,7 @@ import { isResultReference } from "./isResultReference.mts";
 import { isStateDefinition } from "./isStateDefinition.mts";
 import { isStateReference } from "./isStateReference.mts";
 import { isTagOnDependent } from "./isTagOnDependent.mts";
+import { isInvalidToken } from "./isValidToken.mts";
 import { match } from "./match.mts";
 import { Node } from "./node.mts";
 import { INVALID_PATTERN } from "./parseTokens.mts";
@@ -57,7 +58,6 @@ import { updateDiagnosticCollection } from "./updateDiagnosticCollection.mts";
 
 const HEAD_PATTERN = /^(?:\s*["'])?/;
 const TAIL_PATTERN = /(?:["']\s*)?$/;
-const END_SPACE_PATTERN = /(?:^\s|\s$)/;
 const WORD_PATTERN = /[^"'\s]+/;
 const validPosition = [
   "replaceChildren",
@@ -665,9 +665,9 @@ export class Document {
               diagnostic.source = "KEML";
               diagnostic.tags = [DiagnosticTag.Unnecessary];
               this.diagnostics.push(diagnostic);
-            } else if (END_SPACE_PATTERN.test(value)) {
+            } else if (extern.isInvalidToken(value)) {
               diagnostic = new extern.Diagnostic(
-                fullRange,
+                range,
                 `Action subscribers are only allowed to hold 1 value and are used verbatim.
 Make sure not to have any spaces in the action name.`,
                 DiagnosticSeverity.Error
@@ -695,7 +695,7 @@ Make sure not to have any spaces in the action name.`,
               !extern.INVALID_PATTERN.test(value)
             ) {
               diagnostic = new extern.Diagnostic(
-                fullRange,
+                range,
                 `Invalid render position specified.
 Must be one of: ${validPosition.join(", ")}.`,
                 DiagnosticSeverity.Error
@@ -739,6 +739,7 @@ let extern = {
   isStateDefinition,
   isStateReference,
   isTagOnDependent,
+  isInvalidToken,
   match,
   Node,
   INVALID_PATTERN,
@@ -923,6 +924,7 @@ if (import.meta.vitest) {
         isStateDefinition: fn().mockReturnValue(false),
         isStateReference: fn().mockReturnValue(false) as any,
         isTagOnDependent: fn().mockReturnValue(false),
+        isInvalidToken: fn().mockReturnValue(true),
         match: fn().mockReturnValue(false),
         Node: class extends Node {
           override attributes = attrs;
@@ -1053,8 +1055,8 @@ if (import.meta.vitest) {
       expect(cur.diagnostics).toMatchObject([
         {
           range: {
-            end: { character: 19, line: 0 },
-            start: { character: 7, line: 0 },
+            end: { character: 18, line: 0 },
+            start: { character: 14, line: 0 },
           },
           severity: DiagnosticSeverity.Error,
         },

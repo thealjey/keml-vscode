@@ -2,6 +2,7 @@ import { ExtensionContext, workspace } from "vscode";
 import { configure } from "./configure.mts";
 import { getDiagnosticCollection, languageDisposables } from "./data.mts";
 import {
+  onDidCloseDiagnostics,
   onDidCreateDiagnostics,
   onDidCreateFilesDiagnostics,
   onDidDeleteFilesDiagnostics,
@@ -28,6 +29,7 @@ export const activate = async ({ subscriptions }: ExtensionContext) => {
     extern.workspace.onDidChangeConfiguration(onDidChangeConfiguration),
     extern.workspace.onDidChangeTextDocument(onDidEdit),
     extern.workspace.onDidChangeWorkspaceFolders(updateFileSystemWatcher),
+    extern.workspace.onDidCloseTextDocument(onDidCloseDiagnostics),
     extern.workspace.onDidCreateFiles(onDidCreateFilesDiagnostics),
     extern.workspace.onDidDeleteFiles(onDidDeleteFilesDiagnostics),
     extern.workspace.onDidOpenTextDocument(onDidCreateDiagnostics),
@@ -89,6 +91,7 @@ if (import.meta.vitest) {
       const fakeDisposable5 = {};
       const fakeDisposable6 = {};
       const fakeDisposable7 = {};
+      const fakeDisposable8 = {};
 
       const subscriptions: any[] = [];
 
@@ -102,6 +105,7 @@ if (import.meta.vitest) {
         onDidDeleteFiles: fn(() => fakeDisposable5),
         onDidOpenTextDocument: fn(() => fakeDisposable6),
         onDidRenameFiles: fn(() => fakeDisposable7),
+        onDidCloseTextDocument: fn(() => fakeDisposable8),
       } as any;
 
       await activate({ subscriptions } as any);
@@ -130,6 +134,9 @@ if (import.meta.vitest) {
       expect(extern.workspace.onDidRenameFiles).toHaveBeenCalledWith(
         onDidRenameFilesDiagnostics
       );
+      expect(extern.workspace.onDidCloseTextDocument).toHaveBeenCalledWith(
+        onDidCloseDiagnostics
+      );
 
       // Subscriptions array contains the disposables returned by workspace functions
       expect(subscriptions).toContain(diagCollection);
@@ -140,6 +147,7 @@ if (import.meta.vitest) {
       expect(subscriptions).toContain(fakeDisposable5);
       expect(subscriptions).toContain(fakeDisposable6);
       expect(subscriptions).toContain(fakeDisposable7);
+      expect(subscriptions).toContain(fakeDisposable8);
     });
 
     it("deactivate disposes watcher and clears language disposables", () => {

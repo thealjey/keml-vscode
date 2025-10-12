@@ -1,3 +1,10 @@
+## 0.0.3
+
+- Cosmetic improvements to some diagnostic ranges.
+- Implemented a robust, deterministic method for identifying
+  **definitely valid** and **definitely invalid** action names.
+- Added automatic cleanup for virtual documents when they are closed.
+
 ## 0.0.2
 
 - fixed an attribute resolution bug
