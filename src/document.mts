@@ -1065,6 +1065,7 @@ if (import.meta.vitest) {
 
     it("parseHTMLDocument - result reference", () => {
       extern.isResultReference = fn().mockReturnValue(true) as any;
+      extern.isInvalidToken = fn().mockReturnValue(false);
       const cur = new TestDocument('<input value="lol">');
       expect(extern.isResultReference).toBeCalledWith("value");
       expect(extern.addRange).toBeCalledWith(cur.result_references, "lol", {

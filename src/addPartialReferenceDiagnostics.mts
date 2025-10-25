@@ -82,11 +82,13 @@ if (import.meta.vitest) {
       const severity = 2 as any;
 
       extern.docs = { values: () => [{}, {}][Symbol.iterator]() } as any;
-      extern.Diagnostic = fn().mockImplementation((range, message, sev) => ({
-        range,
-        message,
-        severity: sev,
-      }));
+      extern.Diagnostic = class {
+        constructor(
+          public range: any,
+          public message: any,
+          public severity: any
+        ) {}
+      };
 
       const left = fn().mockReturnValue(
         new Map([["missingAction", [mockRange]]])
@@ -120,7 +122,13 @@ if (import.meta.vitest) {
       extern.docs = {
         values: () => [{}, {}][Symbol.iterator](),
       } as any;
-      extern.Diagnostic = fn();
+      extern.Diagnostic = class {
+        constructor(
+          public range: any,
+          public message: any,
+          public severity: any
+        ) {}
+      };
 
       const left = fn().mockReturnValue(
         new Map([["foundAction", [{} as any]]])
@@ -149,11 +157,13 @@ if (import.meta.vitest) {
       const severity = 3 as any;
 
       extern.docs = { values: () => [][Symbol.iterator]() } as any;
-      extern.Diagnostic = fn().mockImplementation((range, msg, sev) => ({
-        range,
-        msg,
-        sev,
-      }));
+      extern.Diagnostic = class {
+        constructor(
+          public range: any,
+          public message: any,
+          public severity: any
+        ) {}
+      };
 
       const left = fn().mockReturnValue(new Map([["missing", [mockRange]]]));
       const right = fn().mockReturnValue(new Map());

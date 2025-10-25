@@ -132,7 +132,7 @@ if (import.meta.vitest) {
         getConfiguration: fn().mockImplementation(section => ({
           get: (key: string, defaultValue: any) => {
             if (section === "search" && key === "exclude")
-              return { "**/node_modules": true };
+              return { "**/node_modules": true, foo: false };
             if (section === "keml" && key === "languageIds")
               return ["html", "js"];
             if (section === "keml" && key === "include") return ["src"];
@@ -151,13 +151,14 @@ if (import.meta.vitest) {
             packageJSON: {
               contributes: {
                 languages: [
-                  { id: "html", extensions: [".html", ".htm"] },
+                  { id: "html", extensions: [".html", ".htm", "xhtml"] },
                   { id: "js", extensions: [".js"] },
                   { id: "ts", extensions: [".ts"] },
                 ],
               },
             },
           },
+          {},
         ],
       } as any;
 
@@ -183,6 +184,7 @@ if (import.meta.vitest) {
       expect(extern.setFileExtensions).toHaveBeenCalledWith([
         "html",
         "htm",
+        "xhtml",
         "js",
       ]);
 
@@ -215,6 +217,7 @@ if (import.meta.vitest) {
       const oldDisposeMock = fn();
       const languageDisposablesMock = new Map([
         ["oldLang", [{ dispose: oldDisposeMock }]],
+        ["oldLang2", [{ dispose: fn() }]],
       ]);
       extern.languageDisposables = languageDisposablesMock;
       extern.workspace = {
@@ -223,7 +226,7 @@ if (import.meta.vitest) {
         }),
       } as any;
       extern.extensions = { all: [] } as any;
-      extern.setLanguageIds = fn().mockReturnValue([]);
+      extern.setLanguageIds = fn().mockReturnValue(["oldLang2"]);
       extern.setExclude = fn().mockReturnValue([]);
       extern.setInclude = fn();
       extern.setActionUndefinedSeverity = fn();
@@ -239,6 +242,7 @@ if (import.meta.vitest) {
 
       expect(oldDisposeMock).toHaveBeenCalled();
       expect(extern.languageDisposables.has("oldLang")).toBe(false);
+      expect(extern.languageDisposables.has("oldLang2")).toBe(true);
     });
   });
 }

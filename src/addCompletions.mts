@@ -93,10 +93,9 @@ if (import.meta.vitest) {
         description: `desc-${action}`,
       }));
       extern.convertDocumentation = fn().mockImplementation(d => `doc-${d}`);
-      extern.CompletionItem = fn().mockImplementation((label, kind) => ({
-        label,
-        kind,
-      }));
+      extern.CompletionItem = class {
+        constructor(public label: any, public kind: any) {}
+      };
 
       const defs = new Map();
       const refs = new Map();
@@ -129,7 +128,9 @@ if (import.meta.vitest) {
         description: "desc",
       });
       extern.convertDocumentation = fn().mockReturnValue("doc");
-      extern.CompletionItem = fn().mockImplementation(label => ({ label }));
+      extern.CompletionItem = class {
+        constructor(public label: any, public kind: any) {}
+      };
 
       addCompletions(
         completions,
@@ -152,7 +153,9 @@ if (import.meta.vitest) {
         .mockImplementationOnce(() => ({}))
         .mockImplementationOnce(() => null);
 
-      extern.CompletionItem = fn();
+      extern.CompletionItem = class {
+        constructor(public label: any, public kind: any) {}
+      };
       extern.convertDocumentation = fn();
 
       addCompletions(

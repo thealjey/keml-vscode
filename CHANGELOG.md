@@ -1,3 +1,8 @@
+## 0.0.4
+
+- Updated internal dependencies, including the core functional one of
+  "vscode-html-languageservice".
+
 ## 0.0.3
 
 - Cosmetic improvements to some diagnostic ranges.

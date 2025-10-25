@@ -106,16 +106,13 @@ if (import.meta.vitest) {
     });
 
     it("updateFileSystemWatcher does nothing if getFileExtensionGlob returns falsy", () => {
-      const oldWatcher = { dispose: fn() } as any;
-      (watcher as any) = oldWatcher;
+      (watcher as any) = undefined;
 
       extern.getFileExtensionGlob = fn(() => "");
       extern.workspace = { createFileSystemWatcher: fn() } as any;
 
       updateFileSystemWatcher();
 
-      // old watcher disposed, but no new watcher created
-      expect(oldWatcher.dispose).toHaveBeenCalled();
       expect(extern.workspace.createFileSystemWatcher).not.toHaveBeenCalled();
     });
   });

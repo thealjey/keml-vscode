@@ -57,6 +57,16 @@ if (import.meta.vitest) {
         )
       ).toBe(true);
     });
+
+    it("executes inner if and fails to match include patterns", () => {
+      expect(
+        match(
+          "node_modules/other-lib/index.js",
+          ["node_modules/**"],
+          ["node_modules/my-lib/**"]
+        )
+      ).toBe(false);
+    });
   });
 }
 /* v8 ignore stop */

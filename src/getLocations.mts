@@ -61,7 +61,9 @@ if (import.meta.vitest) {
         ["doc1", doc1],
         ["doc2", doc2],
       ]) as any;
-      extern.Location = fn((uri: any, range: any) => ({ uri, range }));
+      extern.Location = class {
+        constructor(public uri: any, public range: any) {}
+      };
 
       const result = getLocations("value1", resolver);
 
@@ -75,7 +77,9 @@ if (import.meta.vitest) {
       const doc = { uri: "uri" };
       const resolver = fn(() => new Map());
       extern.docs = new Map([["doc", doc]]) as any;
-      extern.Location = fn((uri: any, range: any) => ({ uri, range }));
+      extern.Location = class {
+        constructor(public uri: any, public range: any) {}
+      };
 
       const result = getLocations("missing", resolver);
 

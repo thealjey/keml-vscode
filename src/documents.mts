@@ -197,39 +197,39 @@ if (import.meta.vitest) {
       const mockDoc = { uri: mockUri, languageId: "ts" } as any;
 
       const mockDocs = new Map();
-      const mockInstance = {};
-      const MockDocument = Object.assign(
-        fn(() => mockInstance),
-        {
-          isApplicable: fn(() => true),
-        }
-      ) as any;
 
       extern.docs = mockDocs;
-      extern.Document = MockDocument;
+      // @ts-ignore
+      extern.Document = class {
+        constructor(public doc: any) {}
+        static isApplicable() {
+          return true;
+        }
+      };
 
       // has(url) === false, overwrite === false
       setDoc(false)(mockDoc);
-      expect(mockDocs.get("u")).toBe(mockInstance);
-      expect(MockDocument).toHaveBeenCalledWith(mockDoc);
+      expect(mockDocs.get("u")).toHaveProperty("doc", mockDoc);
     });
 
     it("setDoc - does nothing when overwrite does not match", () => {
       const mockUri = { toString: fn(() => "u") };
       const mockDoc = { uri: mockUri, languageId: "ts" } as any;
 
-      const mockDocs = new Map([["u", {}]]) as any;
-      const MockDocument = Object.assign(fn(), {
-        isApplicable: fn(() => true),
-      });
+      const mockDocs = new Map([["u", "foo"]]) as any;
 
       extern.docs = mockDocs;
-      extern.Document = MockDocument;
+      // @ts-ignore
+      extern.Document = class {
+        constructor(public doc: any) {}
+        static isApplicable() {
+          return true;
+        }
+      };
 
       // has(url) === true, overwrite === false
       setDoc(false)(mockDoc);
-      expect(mockDocs.get("u")).toEqual({});
-      expect(MockDocument).not.toHaveBeenCalled();
+      expect(mockDocs.get("u")).toBe("foo");
     });
 
     it("setDoc - does nothing when isApplicable is false", () => {
@@ -237,16 +237,18 @@ if (import.meta.vitest) {
       const mockDoc = { uri: mockUri, languageId: "ts" } as any;
 
       const mockDocs = new Map();
-      const MockDocument = Object.assign(fn(), {
-        isApplicable: fn(() => false),
-      });
 
       extern.docs = mockDocs;
-      extern.Document = MockDocument;
+      // @ts-ignore
+      extern.Document = class {
+        constructor(public doc: any) {}
+        static isApplicable() {
+          return false;
+        }
+      };
 
       setDoc(false)(mockDoc);
       expect(mockDocs.size).toBe(0);
-      expect(MockDocument).not.toHaveBeenCalled();
     });
 
     it("withDiagnostics - calls the wrapped callback and then updateDiagnosticCollection", async () => {

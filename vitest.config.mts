@@ -7,7 +7,6 @@ export default defineConfig({
       enabled: true,
       include: ["src/*.mts"],
       reporter: "html",
-      all: true,
       clean: true,
       thresholds: { 100: true },
     },
