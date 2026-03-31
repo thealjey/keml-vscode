@@ -1,7 +1,9 @@
 import { Range } from "vscode";
 
 declare global {
-  type Document = import("./document.mjs", { with: { "resolution-mode": "import" } }).Document;
+  type Document = import("./document.mjs", {
+    with: { "resolution-mode": "import" },
+  }).Document;
 
   /**
    * Represents a parsed attribute within a document.
@@ -18,19 +20,19 @@ declare global {
     value: string;
 
     /**
-     * The starting offset of the attribute name in the document.
+     * The starting offset of the attribute value in the document.
      */
-    start: number;
+    start?: number;
 
     /**
      * The ending offset of the attribute value in the document.
      */
-    end: number;
+    end?: number;
 
     /**
      * The range covering the attribute value.
      */
-    range: Range;
+    range?: Range;
 
     /**
      * The range covering the entire attribute, from start to end.

@@ -61,13 +61,33 @@ export const customData: HTMLDataV1 = {
         },
       },
       {
+        name: "sse",
+        description: {
+          kind: MarkupKind.Markdown,
+          value: `**Attribute**: \`sse\`
+
+* Subscribes the element to a **Server-Sent Event**.
+* The event is triggered directly by the server with no user interaction
+  required.
+* The event also carries the sever response with it, so no additional server
+  requests are necessary either.
+
+💡 Example:
+\`\`\`html
+<div sse="hello" src="/events" result="response"></div>
+\`\`\`
+→ The server triggers the \`hello\` event and the \`response\` result action is
+  immediately available.`,
+        },
+      },
+      {
         name: "reset",
         description: {
           kind: MarkupKind.Markdown,
           value: `**Attribute**: \`reset\`
 
 Subscribes the element to a single action, just like \`on\`, but instead of
-sending a request or performing a redirect, it calls the element's \`reset()\`
+sending a request or performing a redirect, it calls the element's \`reset\`
 method.
 
 - Can be used on forms, form fields, or any element that implements a compatible
@@ -81,6 +101,150 @@ method.
 <button on:click="resetForm">click me</button>
 <form reset="resetForm"></form>
 \`\`\`
+`,
+        },
+      },
+      {
+        name: "scroll",
+        description: {
+          kind: MarkupKind.Markdown,
+          value: `**Attribute**: \`scroll\`
+
+Subscribes the element to a single action, just like \`on\`, but instead of
+sending a request or performing a redirect, it scrolls the element.
+
+### Scrolling attributes
+
+The following attributes modify scrolling behavior:
+
+- \`relative\` — use \`scrollBy\` (relative) instead of \`scroll\` (absolute)
+- \`behavior\` — scrolling behavior: \`auto\`, \`instant\`, or \`smooth\`
+  (defaults to \`auto\`)
+- \`top\` — vertical position or offset; accepts numbers or
+  \`start\` / \`center\` / \`end\`
+- \`left\` — horizontal position or offset; accepts numbers or
+  \`start\` / \`center\` / \`end\`
+
+- Uses \`scroll\` by default. If \`relative\` is present, uses \`scrollBy\`.
+- If neither \`top\` nor \`left\` resolve to valid values, no scrolling is
+  performed.
+- The scroll happens **immediately**, without being affected by \`debounce\` or
+  \`throttle\`.
+- Works with any action, including those initiated by other elements.
+
+💡 Example:
+\`\`\`html
+<button on:click="scrollDiv">click me</button>
+<div scroll="scrollDiv" top="center" behavior="smooth"></div>
+
+<button on:click="scrollRel">click me</button>
+<div scroll="scrollRel" relative top="100"></div>
+\`\`\`
+→ Clicking the first button triggers the \`scrollDiv\` action.${"  "}
+→ The \`div\` subscribed via \`scroll="scrollDiv"\` receives the action.${"  "}
+→ \`top="center"\` resolves to a vertical position within the element.${"  "}
+→ \`behavior="smooth"\` enables smooth scrolling.${"  "}
+→ The element scrolls using \`scroll\`.
+
+→ Clicking the second button triggers the \`scrollRel\` action.${"  "}
+→ The \`div\` subscribed via \`scroll="scrollRel"\` receives the action.${"  "}
+→ \`relative\` switches scrolling to use \`scrollBy\`.${"  "}
+→ \`top="100"\` is interpreted as a vertical offset.${"  "}
+→ The element scrolls down by 100 pixels.
+`,
+        },
+      },
+      {
+        name: "relative",
+        valueSet: "v",
+        description: {
+          kind: MarkupKind.Markdown,
+          value: `**Attribute**: \`relative\`
+
+Modifier for \`scroll\` that switches it to use \`scrollBy\` instead of
+\`scroll\`.
+
+Part of the scrolling attribute set:
+\`scroll\`, \`relative\`, \`behavior\`, \`top\`, \`left\`.
+`,
+        },
+      },
+      {
+        name: "log",
+        valueSet: "v",
+        description: {
+          kind: MarkupKind.Markdown,
+          value: `**Attribute**: \`log\`
+
+* Enables runtime logging for debugging purposes.
+* Outputs information relevant to the element's behavior to the browser console.
+* Has no effect in most cases and is safe to use temporarily.
+* Intended for debugging and should not be left enabled in production.
+* Displays a warning by default to remind you to remove it, which can be
+  disabled via the \`keml.warnOnLogAttribute\` setting.
+
+💡 Example:
+\`\`\`html
+<input event:keydown="key=Enter" log on:keydown="submit">
+\`\`\`
+→ When a key is pressed, relevant runtime information is logged before the
+element processes the event.
+
+💡 Example:
+\`\`\`html
+<input event:keydown log on:keydown="submit">
+\`\`\`
+→ When a key is pressed, logging can be used to inspect available runtime
+data before defining matching conditions.
+`,
+        },
+      },
+      {
+        name: "behavior",
+        valueSet: "behavior",
+        description: {
+          kind: MarkupKind.Markdown,
+          value: `**Attribute**: \`behavior\`
+
+Specifies scrolling behavior for \`scroll\`.
+
+- One of: \`auto\`, \`instant\`, \`smooth\`
+- Defaults to \`auto\` if missing or invalid
+
+Part of the scrolling attribute set:
+\`scroll\`, \`relative\`, \`behavior\`, \`top\`, \`left\`.
+`,
+        },
+      },
+      {
+        name: "top",
+        valueSet: "scrollPosition",
+        description: {
+          kind: MarkupKind.Markdown,
+          value: `**Attribute**: \`top\`
+
+Specifies vertical scroll position or offset.
+
+- Accepts numbers or: \`start\`, \`center\`, \`end\`
+
+Part of the scrolling attribute set:
+\`scroll\`, \`relative\`, \`behavior\`, \`top\`, \`left\`.
+`,
+        },
+      },
+      {
+        name: "left",
+        valueSet: "scrollPosition",
+        description: {
+          kind: MarkupKind.Markdown,
+          value: `**Attribute**: \`top\`
+
+Specifies horizontal scroll position or offset.
+
+- Accepts numbers or: \`start\`, \`center\`, \`end\`
+
+Part of the scrolling attribute set:
+\`scroll\`, \`relative\`, \`behavior\`, \`top\`, \`left\`.
 `,
         },
       },
@@ -539,7 +703,7 @@ method.
             },
           },
         ],
-      }))
+      })),
     ),
   valueSets: [
     {
@@ -729,5 +893,101 @@ method.
       ],
     },
     { name: "method", values: Object.keys(methods).map(getMethodValue) },
+    {
+      name: "behavior",
+      values: [
+        {
+          name: "auto",
+          description: {
+            kind: MarkupKind.Markdown,
+            value: `**Value**: \`auto\`
+
+Uses the browser's default scrolling behavior.
+
+Scrolling occurs without forcing animation and typically happens instantly,
+depending on the user agent.`,
+          },
+        },
+        {
+          name: "instant",
+          description: {
+            kind: MarkupKind.Markdown,
+            value: `**Value**: \`instant\`
+
+Forces scrolling to happen immediately, without animation.
+
+The element jumps directly to the resolved position, bypassing any smooth
+scrolling behavior.`,
+          },
+        },
+        {
+          name: "smooth",
+          description: {
+            kind: MarkupKind.Markdown,
+            value: `**Value**: \`smooth\`
+
+Enables animated scrolling to the target position.
+
+The element transitions gradually toward the resolved position instead of
+jumping instantly.`,
+          },
+        },
+      ],
+    },
+    {
+      name: "scrollPosition",
+      values: [
+        {
+          name: "start",
+          description: {
+            kind: MarkupKind.Markdown,
+            value: `**Value**: \`start\`
+
+Scrolls to the start of the element.
+
+The scroll position is set to the top (for vertical scrolling) or left
+(for horizontal scrolling).`,
+          },
+        },
+        {
+          name: "center",
+          description: {
+            kind: MarkupKind.Markdown,
+            value: `**Value**: \`center\`
+
+Scrolls to the center of the element.
+
+The scroll position is set so that the middle of the scrollable content
+is visible.`,
+          },
+        },
+        {
+          name: "end",
+          description: {
+            kind: MarkupKind.Markdown,
+            value: `**Value**: \`end\`
+
+Scrolls to the end of the element.
+
+The scroll position is set to the bottom (for vertical scrolling) or right
+(for horizontal scrolling).`,
+          },
+        },
+        {
+          name: "<number>",
+          description: {
+            kind: MarkupKind.Markdown,
+            value: `**Value**: \`<number>\`
+
+A numeric value representing a scroll offset in pixels.
+
+- Positive values scroll forward (down or right).
+- Negative values scroll backward (up or left) when used with \`relative\`.
+
+When used without \`relative\`, negative values have undefined behavior.`,
+          },
+        },
+      ],
+    },
   ],
 };

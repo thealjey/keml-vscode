@@ -11,11 +11,13 @@ import { getEventAttrs } from "./getEventAttrs.mts";
 export const expandEventAttr = (attrData: IAttributeData) => {
   const { name } = attrData;
 
-  return name.length > 2 &&
-    name.charCodeAt(0) === 111 &&
-    name.charCodeAt(1) === 110 &&
-    name.charCodeAt(2) !== 58
-    ? extern.getEventAttrs(name.slice(2)).concat(attrData)
+  return (
+      name.length > 2 &&
+        name.charCodeAt(0) === 111 &&
+        name.charCodeAt(1) === 110 &&
+        name.charCodeAt(2) !== 58
+    ) ?
+      extern.getEventAttrs(name.slice(2)).concat(attrData)
     : attrData;
 };
 
@@ -49,7 +51,7 @@ if (import.meta.vitest) {
       const result = expandEventAttr(mockAttr);
 
       expect(mockGetEventAttrs).toHaveBeenCalledOnce();
-      expect(mockGetEventAttrs).toBeCalledWith("click"); // corrected
+      expect(mockGetEventAttrs).toHaveBeenCalledWith("click"); // corrected
       expect(result).toEqual([{ name: "mocked" } as IAttributeData, mockAttr]);
     });
 

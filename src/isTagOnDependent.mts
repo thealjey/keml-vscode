@@ -1,23 +1,7 @@
 import { isOnDependent } from "./isOnDependent.mts";
+import { isTagDependent } from "./isTagDependent.mts";
 
 const onDependentTags = new Map([
-  ["href", ["a", "base", "link"]],
-  ["action", ["form"]],
-  [
-    "src",
-    [
-      "audio",
-      "embed",
-      "frame",
-      "iframe",
-      "img",
-      "input",
-      "script",
-      "source",
-      "track",
-      "video",
-    ],
-  ],
   ["method", ["form"]],
   [
     "name",
@@ -60,87 +44,29 @@ const onDependentTags = new Map([
 ]);
 
 /**
- * Determines whether an attribute is normally dependent on the presence of the
- * "on" attribute.
- * Some attributes with the same name may be allowed on certain HTML tags
- * independently of "on".
- *
- * @param tag - The HTML tag to check against the whitelist of exceptions.
- * @param name - The attribute name to check.
- * @returns A boolean indicating if the attribute would normally be dependent on
- *          "on".
+ * Predicate that determines whether a tag is "on"-dependent for a given
+ * attribute.
  */
-export const isTagOnDependent = (tag: string, name: string) => {
-  if (extern.isOnDependent(name)) {
-    return true;
-  }
-
-  let tags = onDependentTags.get(name);
-  if (tags) {
-    return !tags.includes(tag);
-  }
-
-  if (name.startsWith("x-") && (tags = onDependentTags.get(name.slice(2)))) {
-    return !tags.includes(tag);
-  }
-
-  return false;
-};
-
-let extern = { isOnDependent };
+export const isTagOnDependent = isTagDependent(isOnDependent, onDependentTags);
 
 /* v8 ignore start */
 if (import.meta.vitest) {
-  const {
-    describe,
-    it,
-    expect,
-    afterAll,
-    vi: { fn },
-  } = import.meta.vitest;
-  const origExtern = extern;
-
-  extern = {} as typeof extern;
+  const { describe, it, expect } = import.meta.vitest;
 
   describe("isTagOnDependent", () => {
-    afterAll(() => {
-      extern = origExtern;
+    it("applies method constraints", () => {
+      expect(isTagOnDependent("form", "method")).toBe(false);
+      expect(isTagOnDependent("div", "method")).toBe(true);
     });
 
-    it("returns true if isOnDependent(name) is true", () => {
-      extern.isOnDependent = fn(() => true);
-      const result = isTagOnDependent("a", "href");
-      expect(result).toBe(true);
+    it("applies name constraints", () => {
+      expect(isTagOnDependent("input", "name")).toBe(false);
+      expect(isTagOnDependent("div", "name")).toBe(true);
     });
 
-    it("returns true if name has tags and tag is not included", () => {
-      extern.isOnDependent = fn(() => false);
-      const result = isTagOnDependent("div", "href");
-      expect(result).toBe(true);
-    });
-
-    it("returns false if name has tags and tag is included", () => {
-      extern.isOnDependent = fn(() => false);
-      const result = isTagOnDependent("a", "href");
-      expect(result).toBe(false);
-    });
-
-    it("returns true if name starts with x- and sliced tags do not include tag", () => {
-      extern.isOnDependent = fn(() => false);
-      const result = isTagOnDependent("div", "x-href");
-      expect(result).toBe(true);
-    });
-
-    it("returns false if name starts with x- and sliced tags include tag", () => {
-      extern.isOnDependent = fn(() => false);
-      const result = isTagOnDependent("a", "x-href");
-      expect(result).toBe(false);
-    });
-
-    it("returns false if name is not found in onDependentTags", () => {
-      extern.isOnDependent = fn(() => false);
-      const result = isTagOnDependent("div", "unknownAttr");
-      expect(result).toBe(false);
+    it("applies value constraints", () => {
+      expect(isTagOnDependent("input", "value")).toBe(false);
+      expect(isTagOnDependent("div", "value")).toBe(true);
     });
   });
 }

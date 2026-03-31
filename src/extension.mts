@@ -22,7 +22,7 @@ import {
  * @param context - The extension context containing subscriptions.
  */
 export const activate = async ({ subscriptions }: ExtensionContext) => {
-  await extern.configure();
+  await extern.configure(false);
 
   subscriptions.push(
     extern.getDiagnosticCollection(),
@@ -33,7 +33,7 @@ export const activate = async ({ subscriptions }: ExtensionContext) => {
     extern.workspace.onDidCreateFiles(onDidCreateFilesDiagnostics),
     extern.workspace.onDidDeleteFiles(onDidDeleteFilesDiagnostics),
     extern.workspace.onDidOpenTextDocument(onDidCreateDiagnostics),
-    extern.workspace.onDidRenameFiles(onDidRenameFilesDiagnostics)
+    extern.workspace.onDidRenameFiles(onDidRenameFilesDiagnostics),
   );
 };
 
@@ -114,28 +114,28 @@ if (import.meta.vitest) {
 
       // Each workspace function called with the correct module handler
       expect(extern.workspace.onDidChangeConfiguration).toHaveBeenCalledWith(
-        onDidChangeConfiguration
+        onDidChangeConfiguration,
       );
       expect(extern.workspace.onDidChangeTextDocument).toHaveBeenCalledWith(
-        onDidEdit
+        onDidEdit,
       );
       expect(extern.workspace.onDidChangeWorkspaceFolders).toHaveBeenCalledWith(
-        updateFileSystemWatcher
+        updateFileSystemWatcher,
       );
       expect(extern.workspace.onDidCreateFiles).toHaveBeenCalledWith(
-        onDidCreateFilesDiagnostics
+        onDidCreateFilesDiagnostics,
       );
       expect(extern.workspace.onDidDeleteFiles).toHaveBeenCalledWith(
-        onDidDeleteFilesDiagnostics
+        onDidDeleteFilesDiagnostics,
       );
       expect(extern.workspace.onDidOpenTextDocument).toHaveBeenCalledWith(
-        onDidCreateDiagnostics
+        onDidCreateDiagnostics,
       );
       expect(extern.workspace.onDidRenameFiles).toHaveBeenCalledWith(
-        onDidRenameFilesDiagnostics
+        onDidRenameFilesDiagnostics,
       );
       expect(extern.workspace.onDidCloseTextDocument).toHaveBeenCalledWith(
-        onDidCloseDiagnostics
+        onDidCloseDiagnostics,
       );
 
       // Subscriptions array contains the disposables returned by workspace functions

@@ -34,7 +34,7 @@ export const convertCompletionItem = ({
 }: LSCompletionItem) => {
   const item = new extern.CompletionItem(
     labelDetails ? { ...labelDetails, label } : label,
-    kind
+    kind,
   );
 
   item.preselect = true;
@@ -60,8 +60,9 @@ export const convertCompletionItem = ({
   }
 
   if (textEdit) {
-    item.range = extern.TextEdit.is(textEdit)
-      ? extern.convertRange(textEdit.range)
+    item.range =
+      extern.TextEdit.is(textEdit) ?
+        extern.convertRange(textEdit.range)
       : {
           inserting: extern.convertRange(textEdit.insert),
           replacing: extern.convertRange(textEdit.replace),
@@ -72,7 +73,7 @@ export const convertCompletionItem = ({
         item.insertText = textEditText ?? textEdit.newText;
       } else {
         item.insertText = new extern.SnippetString(
-          textEditText ?? textEdit.newText
+          textEditText ?? textEdit.newText,
         );
       }
     }
@@ -135,7 +136,10 @@ if (import.meta.vitest) {
 
     it("converts a plain CompletionItem with plain text insertText", () => {
       extern.CompletionItem = class {
-        constructor(public label: any, public kind: any) {}
+        constructor(
+          public label: any,
+          public kind: any,
+        ) {}
       };
       extern.SnippetString = fn(function (this: any, val: string) {
         this.value = val;
@@ -184,13 +188,16 @@ if (import.meta.vitest) {
 
     it("wraps insertText in SnippetString if format is not PlainText and sets keepWhitespace", () => {
       extern.CompletionItem = class {
-        constructor(public label: any, public kind: any) {}
+        constructor(
+          public label: any,
+          public kind: any,
+        ) {}
       };
       extern.SnippetString = fn(function (this: any, val: string) {
         this.value = val;
       }) as any;
       extern.TextEdit = { is: fn() } as any;
-      extern.convertDocumentation = fn();
+      extern.convertDocumentation = fn() as any;
       extern.convertRange = fn();
       extern.convertTextEdit = fn();
 
@@ -210,13 +217,16 @@ if (import.meta.vitest) {
 
     it("sets command if insertText starts with label=", () => {
       extern.CompletionItem = class {
-        constructor(public label: any, public kind: any) {}
+        constructor(
+          public label: any,
+          public kind: any,
+        ) {}
       };
       extern.SnippetString = fn(function (this: any, val: string) {
         this.value = val;
       }) as any;
       extern.TextEdit = { is: fn() } as any;
-      extern.convertDocumentation = fn();
+      extern.convertDocumentation = fn() as any;
       extern.convertRange = fn();
       extern.convertTextEdit = fn();
 
@@ -235,15 +245,18 @@ if (import.meta.vitest) {
 
     it("handles textEdit object with insert/replace ranges and overrides insertText", () => {
       extern.CompletionItem = class {
-        constructor(public label: any, public kind: any) {}
+        constructor(
+          public label: any,
+          public kind: any,
+        ) {}
       };
       extern.SnippetString = fn(function (this: any, val: string) {
         this.value = val;
       }) as any;
       extern.TextEdit = { is: fn().mockReturnValue(false) } as any;
-      extern.convertDocumentation = fn();
+      extern.convertDocumentation = fn() as any;
       const mockConvertRange = (extern.convertRange = fn().mockImplementation(
-        r => ({ converted: r })
+        r => ({ converted: r }),
       ));
       extern.convertTextEdit = fn();
 
@@ -266,13 +279,16 @@ if (import.meta.vitest) {
 
     it("uses newText when insertTextFormat is PlainText", () => {
       extern.CompletionItem = class {
-        constructor(public label: any, public kind: any) {}
+        constructor(
+          public label: any,
+          public kind: any,
+        ) {}
       };
       extern.SnippetString = fn(function (this: any, val: string) {
         this.value = val;
       }) as any;
       extern.TextEdit = { is: fn().mockReturnValue(true) } as any;
-      extern.convertDocumentation = fn();
+      extern.convertDocumentation = fn() as any;
       const mockConvertRange = (extern.convertRange = fn().mockReturnValue({
         converted: true,
       }));
@@ -296,13 +312,16 @@ if (import.meta.vitest) {
 
     it("uses textEditText when provided and insertTextFormat is PlainText", () => {
       extern.CompletionItem = class {
-        constructor(public label: any, public kind: any) {}
+        constructor(
+          public label: any,
+          public kind: any,
+        ) {}
       };
       extern.SnippetString = fn(function (this: any, val: string) {
         this.value = val;
       }) as any;
       extern.TextEdit = { is: fn().mockReturnValue(true) } as any;
-      extern.convertDocumentation = fn();
+      extern.convertDocumentation = fn() as any;
       const mockConvertRange = (extern.convertRange = fn().mockReturnValue({
         converted: true,
       }));
@@ -324,11 +343,14 @@ if (import.meta.vitest) {
 
     it("assigns provided command instead of computing one", () => {
       extern.CompletionItem = class {
-        constructor(public label: any, public kind: any) {}
+        constructor(
+          public label: any,
+          public kind: any,
+        ) {}
       };
       extern.SnippetString = fn();
       extern.TextEdit = { is: fn() } as any;
-      extern.convertDocumentation = fn();
+      extern.convertDocumentation = fn() as any;
       extern.convertRange = fn();
       extern.convertTextEdit = fn();
 

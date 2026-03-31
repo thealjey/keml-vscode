@@ -26,7 +26,7 @@ const defaultProvider = getDefaultHTMLDataProvider();
 const staticProvider = newHTMLDataProvider("keml", customData);
 const providedTags = mergeDefinitions(
   staticProvider.provideTags(),
-  defaultProvider.provideTags()
+  defaultProvider.provideTags(),
 );
 const providedValues = new Map<string, Map<string, IValueData[]>>();
 const providedAttributes = new Map<string, IAttributeData[]>();
@@ -82,8 +82,8 @@ const provider: IHTMLDataProvider = {
         attribute,
         (attributed = extern.mergeDefinitions(
           extern.staticProvider.provideValues(tag, attribute),
-          extern.defaultProvider.provideValues(tag, attribute)
-        ))
+          extern.defaultProvider.provideValues(tag, attribute),
+        )),
       );
     }
 
@@ -105,9 +105,9 @@ const provider: IHTMLDataProvider = {
         (tagged = extern
           .mergeDefinitions(
             extern.staticProvider.provideAttributes(tag),
-            extern.defaultProvider.provideAttributes(tag)
+            extern.defaultProvider.provideAttributes(tag),
           )
-          .flatMap(extern.expandEventAttr))
+          .flatMap(extern.expandEventAttr)),
       );
     }
 
@@ -172,25 +172,25 @@ if (import.meta.vitest) {
       extern.isEventReference = fn(() => true) as any;
       extern.provideActionValues = fn(() => [conv]) as any;
       expect(provider.provideValues("tag", "attr")).toEqual([conv]);
-      expect(extern.provideActionValues).toBeCalledWith(
+      expect(extern.provideActionValues).toHaveBeenCalledWith(
         getEventDefinitions,
-        getEventValue
+        getEventValue,
       );
 
       extern.isEventReference = fn(() => false) as any;
       extern.isStateReference = fn(() => true) as any;
       expect(provider.provideValues("tag", "attr")).toEqual([conv]);
-      expect(extern.provideActionValues).toBeCalledWith(
+      expect(extern.provideActionValues).toHaveBeenCalledWith(
         getStateDefinitions,
-        getStateValue
+        getStateValue,
       );
 
       extern.isStateReference = fn(() => false) as any;
       extern.isResultReference = fn(() => true) as any;
       expect(provider.provideValues("tag", "attr")).toEqual([conv]);
-      expect(extern.provideActionValues).toBeCalledWith(
+      expect(extern.provideActionValues).toHaveBeenCalledWith(
         getResultDefinitions,
-        getResultValue
+        getResultValue,
       );
     });
 

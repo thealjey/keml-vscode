@@ -23,7 +23,7 @@ export const addCompletions = (
   definitionsGetter: (cur: Document) => Map<string, Range[]>,
   referencesGetter: (cur: Document) => Map<string, Range[]>,
   range: Range,
-  valueGetter: (name: string) => IValueData
+  valueGetter: (name: string) => IValueData,
 ) => {
   const done = new Set<string>();
   let action, item, valueData;
@@ -31,7 +31,7 @@ export const addCompletions = (
   for (const cur of extern.docs.values()) {
     for (action of extern.combineIterators(
       definitionsGetter(cur).keys(),
-      referencesGetter(cur).keys()
+      referencesGetter(cur).keys(),
     )) {
       if (done.has(action)) {
         continue;
@@ -39,7 +39,7 @@ export const addCompletions = (
       valueData = extern.getExistingActionValue(
         action,
         definitionsGetter,
-        valueGetter
+        valueGetter,
       );
       if (!valueData || !valueData.description) {
         continue;
@@ -94,7 +94,10 @@ if (import.meta.vitest) {
       }));
       extern.convertDocumentation = fn().mockImplementation(d => `doc-${d}`);
       extern.CompletionItem = class {
-        constructor(public label: any, public kind: any) {}
+        constructor(
+          public label: any,
+          public kind: any,
+        ) {}
       };
 
       const defs = new Map();
@@ -105,7 +108,7 @@ if (import.meta.vitest) {
         () => defs,
         () => refs,
         fakeRange,
-        fn()
+        fn(),
       );
       expect(completions).toHaveLength(2);
       expect(completions[0]).toMatchObject({
@@ -129,7 +132,10 @@ if (import.meta.vitest) {
       });
       extern.convertDocumentation = fn().mockReturnValue("doc");
       extern.CompletionItem = class {
-        constructor(public label: any, public kind: any) {}
+        constructor(
+          public label: any,
+          public kind: any,
+        ) {}
       };
 
       addCompletions(
@@ -137,7 +143,7 @@ if (import.meta.vitest) {
         fn().mockReturnValue(new Map()),
         fn().mockReturnValue(new Map()),
         fakeRange,
-        fn()
+        fn(),
       );
       expect(completions).toHaveLength(1);
     });
@@ -154,16 +160,19 @@ if (import.meta.vitest) {
         .mockImplementationOnce(() => null);
 
       extern.CompletionItem = class {
-        constructor(public label: any, public kind: any) {}
+        constructor(
+          public label: any,
+          public kind: any,
+        ) {}
       };
-      extern.convertDocumentation = fn();
+      extern.convertDocumentation = fn() as any;
 
       addCompletions(
         completions,
         fn().mockReturnValue(new Map()),
         fn().mockReturnValue(new Map()),
         fakeRange,
-        fn()
+        fn(),
       );
       expect(completions).toHaveLength(0);
     });

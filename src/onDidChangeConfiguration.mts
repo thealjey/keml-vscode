@@ -9,7 +9,7 @@ import { configure } from "./configure.mts";
  */
 export const onDidChangeConfiguration = (e: ConfigurationChangeEvent) =>
   (e.affectsConfiguration("keml") || e.affectsConfiguration("search")) &&
-  extern.configure();
+  extern.configure(e.affectsConfiguration("keml.warnOnLogAttribute"));
 
 let extern = { configure };
 

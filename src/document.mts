@@ -25,6 +25,7 @@ import {
   getExclude,
   getInclude,
   getLanguageIds,
+  getWarnOnLogAttribute,
   setAttributes,
 } from "./data.mts";
 import { getEventDefinitions } from "./getEventDefinitions.mts";
@@ -38,15 +39,21 @@ import { getResultValue } from "./getResultValue.mts";
 import { getStateDefinitions } from "./getStateDefinitions.mts";
 import { getStateReferences } from "./getStateReferences.mts";
 import { getStateValue } from "./getStateValue.mts";
+import { isBehavior } from "./isBehavior.mts";
 import { isEventDefinition } from "./isEventDefinition.mts";
 import { isEventFilter } from "./isEventFilter.mts";
 import { isEventReference } from "./isEventReference.mts";
+import { isLog } from "./isLog.mts";
 import { isPosition } from "./isPosition.mts";
 import { isResultDefinition } from "./isResultDefinition.mts";
 import { isResultReference } from "./isResultReference.mts";
+import { isScroll } from "./isScroll.mts";
+import { isScrollDependent } from "./isScrollDependent.mts";
+import { isScrollPosition } from "./isScrollPosition.mts";
 import { isStateDefinition } from "./isStateDefinition.mts";
 import { isStateReference } from "./isStateReference.mts";
 import { isTagOnDependent } from "./isTagOnDependent.mts";
+import { isTagSseDependent } from "./isTagSseDependent.mts";
 import { isInvalidToken } from "./isValidToken.mts";
 import { match } from "./match.mts";
 import { Node } from "./node.mts";
@@ -67,7 +74,9 @@ const validPosition = [
   "prepend",
   "append",
 ];
-const DEP_TPL = t`'${"name"}' without ${"article"} '${"depends"}' (or 'x-${"depends"}') does nothing.`;
+const validBehavior = ["auto", "instant", "smooth"];
+const validScrollPosition = ["start", "center", "end"];
+const DEP_TPL = t`'${"name"}' is unused because it has no effect without '${"depends"}' (or 'x-' prefixed equivalents).`;
 
 /**
  * Represents a document with diagnostics, references, and definitions.
@@ -108,6 +117,8 @@ export class Document {
    */
   result_references!: Map<string, Range[]>;
 
+  has_log!: boolean;
+
   /**
    * The URI of the document.
    */
@@ -146,7 +157,7 @@ export class Document {
       uri.toString(),
       "html",
       version,
-      doc.getText()
+      doc.getText(),
     );
     this.parseHTMLDocument();
   }
@@ -325,7 +336,7 @@ export class Document {
         getEventDefinitions,
         getEventReferences,
         range,
-        getEventValue
+        getEventValue,
       );
     } else if (extern.isStateDefinition(name)) {
       extern.addCompletions(
@@ -333,7 +344,7 @@ export class Document {
         getStateDefinitions,
         getStateReferences,
         range,
-        getStateValue
+        getStateValue,
       );
     } else if (extern.isResultDefinition(name)) {
       extern.addCompletions(
@@ -341,7 +352,7 @@ export class Document {
         getResultDefinitions,
         getResultReferences,
         range,
-        getResultValue
+        getResultValue,
       );
     }
 
@@ -396,7 +407,7 @@ export class Document {
     const valueData = extern.getExistingActionValue(
       this.getText(range),
       definitionsGetter,
-      valueGetter
+      valueGetter,
     );
     if (!valueData || !valueData.description) {
       return;
@@ -404,7 +415,7 @@ export class Document {
 
     return new extern.Hover(
       extern.convertDocumentation(valueData.description),
-      range
+      range,
     );
   }
 
@@ -421,7 +432,7 @@ export class Document {
     eventResolver: (cur: Document) => Map<string, Range[]>,
     stateResolver: (cur: Document) => Map<string, Range[]>,
     resultResolver: (cur: Document) => Map<string, Range[]>,
-    position: Position
+    position: Position,
   ) {
     const offset = this.offsetAt(position);
     const node = this.findNodeAt(offset);
@@ -486,7 +497,7 @@ export class Document {
     this.textDoc = LSTextDocument.update(
       this.textDoc,
       contentChanges.slice(),
-      this.version
+      this.version,
     );
     this.parseHTMLDocument();
     extern.updateDiagnosticCollection();
@@ -501,7 +512,7 @@ export class Document {
    */
   private createScanner(
     initialOffset?: number | undefined,
-    range?: Range | undefined
+    range?: Range | undefined,
   ) {
     return extern.service.createScanner(this.getText(range), initialOffset);
   }
@@ -547,7 +558,11 @@ export class Document {
         name = scanner.getTokenText();
         nameOffset = scanner.getTokenOffset();
 
-        newNode.setAttribute(name, null);
+        newNode.setAttribute(name, {
+          name,
+          value: "",
+          fullRange: this.rangeBetween(nameOffset, tokenEnd),
+        });
       } else if (
         name != null &&
         nameOffset != null &&
@@ -582,23 +597,24 @@ export class Document {
    * @param range - The range associated with the diagnostic.
    * @param name - The name of the current attribute.
    * @param depends - The name of the dependent attribute.
-   * @param article - Optional article to use in the diagnostic message.
    */
   private addDependsDiagnostic(
     attributes: Record<string, string | null>,
     range: Range,
     name: string,
-    depends: string,
-    article = "a"
+    depends: string[],
   ) {
-    if (depends in attributes || `x-${depends}` in attributes) {
-      return;
+    for (let i = 0, l = depends.length, d; i < l; ++i) {
+      d = depends[i]!;
+      if (d in attributes || `x-${d}` in attributes) {
+        return;
+      }
     }
 
     const diagnostic = new extern.Diagnostic(
       range,
-      DEP_TPL({ name, article, depends }),
-      DiagnosticSeverity.Warning
+      DEP_TPL({ name, depends: depends.join("', '") }),
+      DiagnosticSeverity.Warning,
     );
     diagnostic.source = "KEML";
     diagnostic.tags = [DiagnosticTag.Unnecessary];
@@ -613,6 +629,7 @@ export class Document {
   private parseHTMLDocument() {
     this.diagnostics = [];
     this.ranges = [];
+    this.has_log = false;
     this.event_definitions = new Map<string, Range[]>();
     this.event_references = new Map<string, Range[]>();
     this.state_definitions = new Map<string, Range[]>();
@@ -622,7 +639,15 @@ export class Document {
     this.htmlDoc = extern.service.parseHTMLDocument(this.textDoc);
 
     const stack = [this.htmlDoc.roots];
-    let nodes, node, diagnostic, tag, attributes, name, value, range, fullRange;
+    let nodes,
+      node,
+      diagnostic,
+      tag,
+      attributes,
+      name: string,
+      value: string,
+      range: Range | undefined,
+      fullRange: Range;
 
     while ((nodes = stack.pop())) {
       for (node of nodes) {
@@ -631,25 +656,24 @@ export class Document {
         attributes = node.attributes ?? {};
 
         for (const attr of this.parseNodeAttrs(node).values()) {
-          if (!attr) {
-            continue;
-          }
           name = attr.name;
           value = attr.value;
           range = attr.range;
           fullRange = attr.fullRange;
-          if (extern.isEventDefinition(name)) {
-            extern.addDefinitionRanges(this.event_definitions, value, range);
-          } else if (extern.isEventReference(name)) {
-            extern.addRange(this.event_references, value, range);
-          } else if (extern.isStateDefinition(name)) {
-            extern.addDefinitionRanges(this.state_definitions, value, range);
-          } else if (extern.isStateReference(name)) {
-            extern.addRange(this.state_references, value, range);
-          } else if (extern.isResultDefinition(name)) {
-            extern.addDefinitionRanges(this.result_definitions, value, range);
-          } else if (extern.isResultReference(name)) {
-            extern.addRange(this.result_references, value, range);
+          if (range) {
+            if (extern.isEventDefinition(name)) {
+              extern.addDefinitionRanges(this.event_definitions, value, range);
+            } else if (extern.isEventReference(name)) {
+              extern.addRange(this.event_references, value, range);
+            } else if (extern.isStateDefinition(name)) {
+              extern.addDefinitionRanges(this.state_definitions, value, range);
+            } else if (extern.isStateReference(name)) {
+              extern.addRange(this.state_references, value, range);
+            } else if (extern.isResultDefinition(name)) {
+              extern.addDefinitionRanges(this.result_definitions, value, range);
+            } else if (extern.isResultReference(name)) {
+              extern.addRange(this.result_references, value, range);
+            }
           }
           if (
             extern.isEventReference(name) ||
@@ -660,52 +684,130 @@ export class Document {
               diagnostic = new extern.Diagnostic(
                 fullRange,
                 "No action specified.",
-                DiagnosticSeverity.Warning
+                DiagnosticSeverity.Warning,
               );
               diagnostic.source = "KEML";
               diagnostic.tags = [DiagnosticTag.Unnecessary];
               this.diagnostics.push(diagnostic);
-            } else if (extern.isInvalidToken(value)) {
+            } else if (extern.isInvalidToken(value) && range) {
               diagnostic = new extern.Diagnostic(
                 range,
                 `Action subscribers are only allowed to hold 1 value and are used verbatim.
 Make sure not to have any spaces in the action name.`,
-                DiagnosticSeverity.Error
+                DiagnosticSeverity.Error,
               );
               diagnostic.source = "KEML";
               this.diagnostics.push(diagnostic);
             }
           }
           if (extern.isEventFilter(name)) {
-            this.addDependsDiagnostic(
-              attributes,
-              fullRange,
-              name,
+            this.addDependsDiagnostic(attributes, fullRange, name, [
               `on${name.slice(name.indexOf(":"))}`,
-              "a corresponding"
-            );
+            ]);
+          }
+          if (extern.isTagSseDependent(tag!, name)) {
+            this.addDependsDiagnostic(attributes, fullRange, name, [
+              "on",
+              "sse",
+            ]);
           }
           if (extern.isTagOnDependent(tag!, name)) {
-            this.addDependsDiagnostic(attributes, fullRange, name, "on", "an");
+            this.addDependsDiagnostic(attributes, fullRange, name, ["on"]);
           }
           if (extern.isPosition(name)) {
-            this.addDependsDiagnostic(attributes, fullRange, name, "render");
+            this.addDependsDiagnostic(attributes, fullRange, name, ["render"]);
             if (
               !validPosition.includes(value) &&
-              !extern.INVALID_PATTERN.test(value)
+              !extern.INVALID_PATTERN.test(value) &&
+              range
             ) {
               diagnostic = new extern.Diagnostic(
                 range,
-                `Invalid render position specified.
-Must be one of: ${validPosition.join(", ")}.`,
-                DiagnosticSeverity.Error
+                `Invalid render position.
+Expected one of: ${validPosition.join(", ")}.`,
+                DiagnosticSeverity.Error,
+              );
+              diagnostic.source = "KEML";
+              this.diagnostics.push(diagnostic);
+            }
+          }
+          if (extern.isScrollDependent(name)) {
+            this.addDependsDiagnostic(attributes, fullRange, name, ["scroll"]);
+          }
+          if (
+            extern.isBehavior(name) &&
+            !validBehavior.includes(value) &&
+            !extern.INVALID_PATTERN.test(value) &&
+            range
+          ) {
+            diagnostic = new extern.Diagnostic(
+              range,
+              `Invalid scroll behavior.
+Expected one of: ${validBehavior.join(", ")}.
+Falling back to "auto".`,
+              DiagnosticSeverity.Error,
+            );
+            diagnostic.source = "KEML";
+            this.diagnostics.push(diagnostic);
+          }
+          if (extern.isScrollPosition(name)) {
+            if (!value) {
+              diagnostic = new extern.Diagnostic(
+                fullRange,
+                `Missing value.
+Expected one of: ${validScrollPosition.join(", ")} or a numeric value.
+The value will be ignored.
+Specify either "top" or "left" to enable scrolling.`,
+                DiagnosticSeverity.Warning,
+              );
+              diagnostic.source = "KEML";
+              this.diagnostics.push(diagnostic);
+            } else if (
+              range &&
+              isNaN(+value) &&
+              !validScrollPosition.includes(value)
+            ) {
+              diagnostic = new extern.Diagnostic(
+                range,
+                `Invalid scroll position.
+Expected one of: ${validScrollPosition.join(", ")} or a numeric value.
+The value will be ignored.
+Specify either "top" or "left" to enable scrolling.`,
+                DiagnosticSeverity.Error,
+              );
+              diagnostic.source = "KEML";
+              this.diagnostics.push(diagnostic);
+            }
+          }
+          if (extern.isLog(name)) {
+            this.has_log = true;
+            if (extern.getWarnOnLogAttribute()) {
+              diagnostic = new extern.Diagnostic(
+                fullRange,
+                `Debug attribute \`log\` is enabled. Remove before production or disable this warning with \`keml.warnOnLogAttribute\`.`,
+                DiagnosticSeverity.Warning,
               );
               diagnostic.source = "KEML";
               this.diagnostics.push(diagnostic);
             }
           }
           if (name.startsWith("x-")) {
-            this.addDependsDiagnostic(attributes, fullRange, name, "if", "an");
+            this.addDependsDiagnostic(attributes, fullRange, name, ["if"]);
+          }
+          if (
+            extern.isScroll(name) &&
+            !("top" in attributes) &&
+            !("x-top" in attributes) &&
+            !("left" in attributes) &&
+            !("x-left" in attributes)
+          ) {
+            diagnostic = new extern.Diagnostic(
+              fullRange,
+              `Scroll attribute will not trigger movement. Specify 'top', 'left', or both to enable scrolling.`,
+              DiagnosticSeverity.Warning,
+            );
+            diagnostic.source = "KEML";
+            this.diagnostics.push(diagnostic);
           }
         }
       }
@@ -727,6 +829,7 @@ let extern = {
   getExclude,
   getInclude,
   getLanguageIds,
+  getWarnOnLogAttribute,
   setAttributes,
   getExistingActionValue,
   getLocations,
@@ -734,10 +837,16 @@ let extern = {
   isEventFilter,
   isEventReference,
   isPosition,
+  isScrollDependent,
+  isBehavior,
+  isScrollPosition,
+  isScroll,
+  isLog,
   isResultDefinition,
   isResultReference,
   isStateDefinition,
   isStateReference,
+  isTagSseDependent,
   isTagOnDependent,
   isInvalidToken,
   match,
@@ -788,8 +897,8 @@ if (import.meta.vitest) {
       this.lineCount = this.html.split("\n").length;
     }
     getText(range?: Range) {
-      return range == null
-        ? this.html
+      return range == null ?
+          this.html
         : this.html.slice(this.offsetAt(range.start), this.offsetAt(range.end));
     }
     validatePosition(position: Position) {
@@ -823,7 +932,7 @@ if (import.meta.vitest) {
         rangeIncludingLineBreak: {
           start: this.positionAt(start - (lineNumber > 1 ? 1 : 0)),
           end: this.positionAt(
-            start + text.length + (lineNumber < this.lineCount - 1 ? 1 : 0)
+            start + text.length + (lineNumber < this.lineCount - 1 ? 1 : 0),
           ),
         } as Range,
         firstNonWhitespaceCharacterIndex: text.search(/\S/),
@@ -841,10 +950,10 @@ if (import.meta.vitest) {
     getWordRangeAtPosition(position: Position, regex = /\w+/) {
       const offset = this.offsetAt(position);
       const start = new RegExp(`${regex.source}$`, regex.flags).exec(
-        this.html.slice(0, offset)
+        this.html.slice(0, offset),
       )?.[0].length;
       const end = new RegExp(`^${regex.source}`, regex.flags).exec(
-        this.html.slice(offset)
+        this.html.slice(offset),
       )?.[0].length;
       let startOffset, endOffset;
       startOffset = endOffset = offset;
@@ -894,14 +1003,20 @@ if (import.meta.vitest) {
           constructor(
             public range: Range,
             public message: string,
-            public severity: DiagnosticSeverity
+            public severity: DiagnosticSeverity,
           ) {}
         },
         Hover: class Hover {
-          constructor(public contents: any, public range: any) {}
+          constructor(
+            public contents: any,
+            public range: any,
+          ) {}
         },
         Range: class {
-          constructor(public start: any, public end: any) {}
+          constructor(
+            public start: any,
+            public end: any,
+          ) {}
         } as any,
         addCompletions: fn(),
         addDefinitionRanges: fn(),
@@ -919,10 +1034,17 @@ if (import.meta.vitest) {
         isEventFilter: fn().mockReturnValue(false),
         isEventReference: fn().mockReturnValue(false) as any,
         isPosition: fn().mockReturnValue(false) as any,
+        isBehavior: fn().mockReturnValue(false) as any,
+        isScroll: fn().mockReturnValue(false) as any,
+        isScrollDependent: fn().mockReturnValue(false) as any,
+        isScrollPosition: fn().mockReturnValue(false) as any,
+        isLog: fn().mockReturnValue(false) as any,
+        getWarnOnLogAttribute: fn().mockReturnValue(true) as any,
         isResultDefinition: fn().mockReturnValue(false) as any,
         isResultReference: fn().mockReturnValue(false) as any,
         isStateDefinition: fn().mockReturnValue(false),
         isStateReference: fn().mockReturnValue(false) as any,
+        isTagSseDependent: fn().mockReturnValue(false),
         isTagOnDependent: fn().mockReturnValue(false),
         isInvalidToken: fn().mockReturnValue(true),
         match: fn().mockReturnValue(false),
@@ -942,11 +1064,11 @@ if (import.meta.vitest) {
       }));
       doHover = spyOn(testService, "doHover").mockImplementation(
         (_, { character }) =>
-          character === 7
-            ? {
-                contents: ["foo"],
-              }
-            : null
+          character === 7 ?
+            {
+              contents: ["foo"],
+            }
+          : null,
       );
     });
 
@@ -973,8 +1095,15 @@ if (import.meta.vitest) {
 
     it("createScanner", () => {
       new TestDocument('<input value="lol">');
-      expect(setAttr).toBeCalledWith("value", null);
-      expect(setAttr).toBeCalledWith("value", {
+      expect(setAttr).toHaveBeenCalledWith("value", {
+        fullRange: {
+          end: { character: 12, line: 0 },
+          start: { character: 7, line: 0 },
+        },
+        name: "value",
+        value: "",
+      });
+      expect(setAttr).toHaveBeenCalledWith("value", {
         end: 17,
         fullRange: {
           end: { character: 18, line: 0 },
@@ -993,41 +1122,41 @@ if (import.meta.vitest) {
     it("parseHTMLDocument - event definition", () => {
       extern.isEventDefinition = fn().mockReturnValue(true);
       const cur = new TestDocument('<input disabled value="lol">');
-      expect(extern.isEventDefinition).toBeCalledWith("value");
-      expect(extern.addDefinitionRanges).toBeCalledWith(
+      expect(extern.isEventDefinition).toHaveBeenCalledWith("value");
+      expect(extern.addDefinitionRanges).toHaveBeenCalledWith(
         cur.event_definitions,
         "lol",
-        { end: { character: 26, line: 0 }, start: { character: 23, line: 0 } }
+        { end: { character: 26, line: 0 }, start: { character: 23, line: 0 } },
       );
     });
 
     it("parseHTMLDocument - state definition", () => {
       extern.isStateDefinition = fn().mockReturnValue(true);
       const cur = new TestDocument('<input value="lol">');
-      expect(extern.isStateDefinition).toBeCalledWith("value");
-      expect(extern.addDefinitionRanges).toBeCalledWith(
+      expect(extern.isStateDefinition).toHaveBeenCalledWith("value");
+      expect(extern.addDefinitionRanges).toHaveBeenCalledWith(
         cur.state_definitions,
         "lol",
-        { end: { character: 17, line: 0 }, start: { character: 14, line: 0 } }
+        { end: { character: 17, line: 0 }, start: { character: 14, line: 0 } },
       );
     });
 
     it("parseHTMLDocument - result definition", () => {
       extern.isResultDefinition = fn().mockReturnValue(true) as any;
       const cur = new TestDocument('<input value="lol">');
-      expect(extern.isResultDefinition).toBeCalledWith("value");
-      expect(extern.addDefinitionRanges).toBeCalledWith(
+      expect(extern.isResultDefinition).toHaveBeenCalledWith("value");
+      expect(extern.addDefinitionRanges).toHaveBeenCalledWith(
         cur.result_definitions,
         "lol",
-        { end: { character: 17, line: 0 }, start: { character: 14, line: 0 } }
+        { end: { character: 17, line: 0 }, start: { character: 14, line: 0 } },
       );
     });
 
     it("parseHTMLDocument - event reference - no value", () => {
       extern.isEventReference = fn().mockReturnValue(true) as any;
       const cur = new TestDocument('<input value="">');
-      expect(extern.isEventReference).toBeCalledWith("value");
-      expect(extern.addRange).toBeCalledWith(cur.event_references, "", {
+      expect(extern.isEventReference).toHaveBeenCalledWith("value");
+      expect(extern.addRange).toHaveBeenCalledWith(cur.event_references, "", {
         end: { character: 14, line: 0 },
         start: { character: 14, line: 0 },
       });
@@ -1047,11 +1176,15 @@ if (import.meta.vitest) {
     it("parseHTMLDocument - state reference - spaces", () => {
       extern.isStateReference = fn().mockReturnValue(true) as any;
       const cur = new TestDocument('<input value=" lol">');
-      expect(extern.isStateReference).toBeCalledWith("value");
-      expect(extern.addRange).toBeCalledWith(cur.state_references, " lol", {
-        end: { character: 18, line: 0 },
-        start: { character: 14, line: 0 },
-      });
+      expect(extern.isStateReference).toHaveBeenCalledWith("value");
+      expect(extern.addRange).toHaveBeenCalledWith(
+        cur.state_references,
+        " lol",
+        {
+          end: { character: 18, line: 0 },
+          start: { character: 14, line: 0 },
+        },
+      );
       expect(cur.diagnostics).toMatchObject([
         {
           range: {
@@ -1067,33 +1200,37 @@ if (import.meta.vitest) {
       extern.isResultReference = fn().mockReturnValue(true) as any;
       extern.isInvalidToken = fn().mockReturnValue(false);
       const cur = new TestDocument('<input value="lol">');
-      expect(extern.isResultReference).toBeCalledWith("value");
-      expect(extern.addRange).toBeCalledWith(cur.result_references, "lol", {
-        end: { character: 17, line: 0 },
-        start: { character: 14, line: 0 },
-      });
+      expect(extern.isResultReference).toHaveBeenCalledWith("value");
+      expect(extern.addRange).toHaveBeenCalledWith(
+        cur.result_references,
+        "lol",
+        {
+          end: { character: 17, line: 0 },
+          start: { character: 14, line: 0 },
+        },
+      );
     });
 
     it("addDependsDiagnostic - in attributes", () => {
       extern.isEventFilter = fn(name => name.startsWith("event:"));
       const cur = new TestDocument('<input on:value="" event:value="lol">');
-      expect(extern.isEventFilter).toBeCalledWith("event:value");
+      expect(extern.isEventFilter).toHaveBeenCalledWith("event:value");
       expect(cur.diagnostics.length).toBe(0);
     });
 
     it("addDependsDiagnostic - in x-attributes", () => {
       extern.isEventFilter = fn(name => name.startsWith("event:"));
       const cur = new TestDocument(
-        '<input if="" x-on:value="" event:value="lol">'
+        '<input if="" x-on:value="" event:value="lol">',
       );
-      expect(extern.isEventFilter).toBeCalledWith("event:value");
+      expect(extern.isEventFilter).toHaveBeenCalledWith("event:value");
       expect(cur.diagnostics.length).toBe(0);
     });
 
     it("parseHTMLDocument - event filter", () => {
       extern.isEventFilter = fn(name => name.startsWith("event:"));
       const cur = new TestDocument('<input if="" event:value="lol">');
-      expect(extern.isEventFilter).toBeCalledWith("event:value");
+      expect(extern.isEventFilter).toHaveBeenCalledWith("event:value");
       expect(cur.diagnostics).toMatchObject([
         {
           range: {
@@ -1106,10 +1243,30 @@ if (import.meta.vitest) {
       ]);
     });
 
+    it("parseHTMLDocument - depends on 'sse' which exists", () => {
+      extern.isTagSseDependent = fn((_, name) => name === "result");
+      const cur = new TestDocument('<input sse="" result="lol">');
+      expect(extern.isTagSseDependent).toHaveBeenCalledWith("input", "result");
+      expect(cur.diagnostics.length).toBe(0);
+    });
+
+    it("parseHTMLDocument - depends on 'sse' which does not exist", () => {
+      extern.isTagSseDependent = fn().mockReturnValue(true);
+      const cur = new TestDocument('<input result="lol">');
+      expect(cur.diagnostics).toMatchObject([
+        {
+          range: {
+            end: { character: 19, line: 0 },
+            start: { character: 7, line: 0 },
+          },
+        },
+      ]);
+    });
+
     it("parseHTMLDocument - depends on 'on' which exists", () => {
       extern.isTagOnDependent = fn((_, name) => name === "value");
       const cur = new TestDocument('<input on="" value="lol">');
-      expect(extern.isTagOnDependent).toBeCalledWith("input", "value");
+      expect(extern.isTagOnDependent).toHaveBeenCalledWith("input", "value");
       expect(cur.diagnostics.length).toBe(0);
     });
 
@@ -1126,10 +1283,46 @@ if (import.meta.vitest) {
       ]);
     });
 
+    it("parseHTMLDocument - depends on 'scroll' which exists", () => {
+      extern.isScrollDependent = fn(name => name === "value") as any;
+      const cur = new TestDocument('<input scroll="" value="lol">');
+      expect(extern.isScrollDependent).toHaveBeenCalledWith("scroll");
+      expect(cur.diagnostics.length).toBe(0);
+    });
+
+    it("parseHTMLDocument - depends on 'scroll' which does not exist", () => {
+      extern.isScrollDependent = fn().mockReturnValue(true) as any;
+      const cur = new TestDocument('<input value="lol">');
+      expect(cur.diagnostics).toMatchObject([
+        {
+          range: {
+            end: { character: 18, line: 0 },
+            start: { character: 7, line: 0 },
+          },
+        },
+      ]);
+    });
+
+    it("parseHTMLDocument - a log", () => {
+      extern.isLog = fn().mockReturnValue(true) as any;
+      const cur = new TestDocument('<input value="lol">');
+      expect(extern.isPosition).toHaveBeenCalledWith("value");
+      expect(cur.diagnostics.length).toBe(1);
+    });
+
+    it("parseHTMLDocument - a log setting disabled", () => {
+      extern.isLog = fn().mockReturnValue(true) as any;
+      extern.getWarnOnLogAttribute = fn().mockReturnValue(false) as any;
+      const cur = new TestDocument('<input value="lol">');
+      expect(extern.isPosition).toHaveBeenCalledWith("value");
+      expect(cur.diagnostics.length).toBe(0);
+      expect(cur.has_log).toBe(true);
+    });
+
     it("parseHTMLDocument - a position", () => {
       extern.isPosition = fn().mockReturnValue(true) as any;
       const cur = new TestDocument('<input value="lol">');
-      expect(extern.isPosition).toBeCalledWith("value");
+      expect(extern.isPosition).toHaveBeenCalledWith("value");
       expect(cur.diagnostics.length).toBe(1);
     });
 
@@ -1137,8 +1330,51 @@ if (import.meta.vitest) {
       extern.isPosition = fn().mockReturnValue(true) as any;
       extern.INVALID_PATTERN = { test: () => false } as any;
       const cur = new TestDocument('<input value="lol">');
-      expect(extern.isPosition).toBeCalledWith("value");
+      expect(extern.isPosition).toHaveBeenCalledWith("value");
       expect(cur.diagnostics.length).toBe(2);
+    });
+
+    it("parseHTMLDocument - a behavior", () => {
+      extern.isBehavior = fn().mockReturnValue(true) as any;
+      const cur = new TestDocument('<input value="lol">');
+      expect(extern.isBehavior).toHaveBeenCalledWith("value");
+      expect(cur.diagnostics.length).toBe(0);
+    });
+
+    it("parseHTMLDocument - a behavior with pattern", () => {
+      extern.isBehavior = fn().mockReturnValue(true) as any;
+      extern.INVALID_PATTERN = { test: () => false } as any;
+      const cur = new TestDocument('<input value="lol">');
+      expect(extern.isBehavior).toHaveBeenCalledWith("value");
+      expect(cur.diagnostics.length).toBe(1);
+    });
+
+    it("parseHTMLDocument - a scroll position", () => {
+      extern.isScrollPosition = fn().mockReturnValue(true) as any;
+      const cur = new TestDocument('<input value="lol">');
+      expect(extern.isScrollPosition).toHaveBeenCalledWith("value");
+      expect(cur.diagnostics.length).toBe(1);
+    });
+
+    it("parseHTMLDocument - a scroll position", () => {
+      extern.isScrollPosition = fn().mockReturnValue(true) as any;
+      const cur = new TestDocument('<input value="">');
+      expect(extern.isScrollPosition).toHaveBeenCalledWith("value");
+      expect(cur.diagnostics.length).toBe(1);
+    });
+
+    it("parseHTMLDocument - a scroll position", () => {
+      extern.isScrollPosition = fn().mockReturnValue(true) as any;
+      const cur = new TestDocument('<input value="center">');
+      expect(extern.isScrollPosition).toHaveBeenCalledWith("value");
+      expect(cur.diagnostics.length).toBe(0);
+    });
+
+    it("parseHTMLDocument - a scroll", () => {
+      extern.isScroll = fn().mockReturnValue(true) as any;
+      const cur = new TestDocument('<input value="lol">');
+      expect(extern.isScroll).toHaveBeenCalledWith("value");
+      expect(cur.diagnostics.length).toBe(1);
     });
 
     it("update - empty", () => {
@@ -1149,7 +1385,7 @@ if (import.meta.vitest) {
         reason: undefined,
       });
       runAllTimers();
-      expect(update).not.toBeCalled();
+      expect(update).not.toHaveBeenCalled();
     });
 
     it("update", () => {
@@ -1160,7 +1396,7 @@ if (import.meta.vitest) {
         reason: undefined,
       });
       runAllTimers();
-      expect(update).toBeCalledTimes(1);
+      expect(update).toHaveBeenCalledTimes(1);
       expect(update.mock.calls[0]![1]).toEqual(["bar", "baz"]);
     });
 
@@ -1177,7 +1413,7 @@ if (import.meta.vitest) {
     it("getWordRangeAtPosition", () => {
       const cur = new TestDocument(" foobar ");
       expect(
-        cur.getWordRangeAtPosition({ line: 0, character: 3 } as Position)
+        cur.getWordRangeAtPosition({ line: 0, character: 3 } as Position),
       ).toMatchObject({
         end: { character: 7, line: 0 },
         start: { character: 1, line: 0 },
@@ -1206,36 +1442,36 @@ if (import.meta.vitest) {
     it("doComplete - no node", () => {
       const cur = new TestDocument(" <input>");
       expect(
-        cur.doComplete({ line: 0, character: 0 } as Position)
+        cur.doComplete({ line: 0, character: 0 } as Position),
       ).toBeUndefined();
-      expect(extern.setAttributes).not.toBeCalled();
-      expect(doComplete).not.toBeCalled();
+      expect(extern.setAttributes).not.toHaveBeenCalled();
+      expect(doComplete).not.toHaveBeenCalled();
     });
 
     it("doComplete - no attribute value", () => {
       const cur = new TestDocument(" <input>");
       expect(
-        cur.doComplete({ line: 0, character: 7 } as Position)
+        cur.doComplete({ line: 0, character: 7 } as Position),
       ).toMatchObject(["foo"]);
     });
 
     it("doComplete - unknown", () => {
       const cur = new TestDocument(' <input value="">');
       cur.doComplete({ line: 0, character: 15 } as Position);
-      expect(extern.addCompletions).not.toBeCalled();
+      expect(extern.addCompletions).not.toHaveBeenCalled();
     });
 
     it("doComplete - event definition", () => {
       extern.isEventDefinition = fn().mockReturnValue(true);
       const cur = new TestDocument(' <input value="bar">');
       cur.doComplete({ line: 0, character: 16 } as Position);
-      expect(extern.isEventDefinition).toBeCalledWith("value");
-      expect(extern.addCompletions).toBeCalledWith(
+      expect(extern.isEventDefinition).toHaveBeenCalledWith("value");
+      expect(extern.addCompletions).toHaveBeenCalledWith(
         ["foo"],
         getEventDefinitions,
         getEventReferences,
         { end: { character: 18, line: 0 }, start: { character: 15, line: 0 } },
-        getEventValue
+        getEventValue,
       );
     });
 
@@ -1243,13 +1479,13 @@ if (import.meta.vitest) {
       extern.isStateDefinition = fn().mockReturnValue(true);
       const cur = new TestDocument(' <input value="bar">');
       cur.doComplete({ line: 0, character: 16 } as Position);
-      expect(extern.isStateDefinition).toBeCalledWith("value");
-      expect(extern.addCompletions).toBeCalledWith(
+      expect(extern.isStateDefinition).toHaveBeenCalledWith("value");
+      expect(extern.addCompletions).toHaveBeenCalledWith(
         ["foo"],
         getStateDefinitions,
         getStateReferences,
         { end: { character: 18, line: 0 }, start: { character: 15, line: 0 } },
-        getStateValue
+        getStateValue,
       );
     });
 
@@ -1257,23 +1493,23 @@ if (import.meta.vitest) {
       extern.isResultDefinition = fn().mockReturnValue(true) as any;
       const cur = new TestDocument(' <input value="bar">');
       cur.doComplete({ line: 0, character: 16 } as Position);
-      expect(extern.isResultDefinition).toBeCalledWith("value");
-      expect(extern.addCompletions).toBeCalledWith(
+      expect(extern.isResultDefinition).toHaveBeenCalledWith("value");
+      expect(extern.addCompletions).toHaveBeenCalledWith(
         ["foo"],
         getResultDefinitions,
         getResultReferences,
         { end: { character: 18, line: 0 }, start: { character: 15, line: 0 } },
-        getResultValue
+        getResultValue,
       );
     });
 
     it("doHover - no node", () => {
       const cur = new TestDocument(" <input>");
       expect(
-        cur.doHover({ line: 0, character: 0 } as Position)
+        cur.doHover({ line: 0, character: 0 } as Position),
       ).toBeUndefined();
-      expect(extern.setAttributes).not.toBeCalled();
-      expect(doHover).not.toBeCalled();
+      expect(extern.setAttributes).not.toHaveBeenCalled();
+      expect(doHover).not.toHaveBeenCalled();
     });
 
     it("doHover - native", () => {
@@ -1286,37 +1522,37 @@ if (import.meta.vitest) {
     it("doHover - no value", () => {
       const cur = new TestDocument(' <input value="">');
       expect(
-        cur.doHover({ line: 0, character: 15 } as Position)
+        cur.doHover({ line: 0, character: 15 } as Position),
       ).toBeUndefined();
     });
 
     it("doHover - no attribute", () => {
       const cur = new TestDocument(" <input>");
       expect(
-        cur.doHover({ line: 0, character: 6 } as Position)
+        cur.doHover({ line: 0, character: 6 } as Position),
       ).toBeUndefined();
     });
 
     it("doHover - unknown", () => {
       const cur = new TestDocument(' <input value="bar">');
       expect(
-        cur.doHover({ line: 0, character: 16 } as Position)
+        cur.doHover({ line: 0, character: 16 } as Position),
       ).toBeUndefined();
-      expect(extern.convertDocumentation).not.toBeCalled();
+      expect(extern.convertDocumentation).not.toHaveBeenCalled();
     });
 
     it("doHover - event definition", () => {
       extern.isEventDefinition = fn().mockReturnValue(true);
       const cur = new TestDocument(' <input value="bar">');
       expect(
-        cur.doHover({ line: 0, character: 16 } as Position)
+        cur.doHover({ line: 0, character: 16 } as Position),
       ).toBeUndefined();
-      expect(extern.getExistingActionValue).toBeCalledWith(
+      expect(extern.getExistingActionValue).toHaveBeenCalledWith(
         "bar",
         getEventDefinitions,
-        getEventValue
+        getEventValue,
       );
-      expect(extern.convertDocumentation).not.toBeCalled();
+      expect(extern.convertDocumentation).not.toHaveBeenCalled();
     });
 
     it("doHover - state definition", () => {
@@ -1324,14 +1560,14 @@ if (import.meta.vitest) {
       extern.getExistingActionValue = fn().mockReturnValue({});
       const cur = new TestDocument(' <input value="bar">');
       expect(
-        cur.doHover({ line: 0, character: 16 } as Position)
+        cur.doHover({ line: 0, character: 16 } as Position),
       ).toBeUndefined();
-      expect(extern.getExistingActionValue).toBeCalledWith(
+      expect(extern.getExistingActionValue).toHaveBeenCalledWith(
         "bar",
         getStateDefinitions,
-        getStateValue
+        getStateValue,
       );
-      expect(extern.convertDocumentation).not.toBeCalled();
+      expect(extern.convertDocumentation).not.toHaveBeenCalled();
     });
 
     it("doHover - result definition", () => {
@@ -1347,14 +1583,14 @@ if (import.meta.vitest) {
             end: { character: 18, line: 0 },
             start: { character: 15, line: 0 },
           },
-        }
+        },
       );
-      expect(extern.getExistingActionValue).toBeCalledWith(
+      expect(extern.getExistingActionValue).toHaveBeenCalledWith(
         "bar",
         getResultDefinitions,
-        getResultValue
+        getResultValue,
       );
-      expect(extern.convertDocumentation).toBeCalledWith("baz");
+      expect(extern.convertDocumentation).toHaveBeenCalledWith("baz");
     });
 
     it("doRefer - no node", () => {
@@ -1364,10 +1600,10 @@ if (import.meta.vitest) {
           ({ event_definitions }) => event_definitions,
           ({ state_definitions }) => state_definitions,
           ({ result_definitions }) => result_definitions,
-          { line: 0, character: 0 } as Position
-        )
+          { line: 0, character: 0 } as Position,
+        ),
       ).toBeUndefined();
-      expect(extern.getLocations).not.toBeCalled();
+      expect(extern.getLocations).not.toHaveBeenCalled();
     });
 
     it("doRefer - no attribute", () => {
@@ -1377,8 +1613,8 @@ if (import.meta.vitest) {
           ({ event_definitions }) => event_definitions,
           ({ state_definitions }) => state_definitions,
           ({ result_definitions }) => result_definitions,
-          { line: 0, character: 6 } as Position
-        )
+          { line: 0, character: 6 } as Position,
+        ),
       ).toBeUndefined();
     });
 
@@ -1392,10 +1628,10 @@ if (import.meta.vitest) {
           eventResolver,
           ({ state_definitions }) => state_definitions,
           ({ result_definitions }) => result_definitions,
-          { line: 0, character: 16 } as Position
-        )
+          { line: 0, character: 16 } as Position,
+        ),
       ).toMatchObject(["mock-loc"]);
-      expect(extern.getLocations).toBeCalledWith("bar", eventResolver);
+      expect(extern.getLocations).toHaveBeenCalledWith("bar", eventResolver);
     });
 
     it("doRefer - state reference", () => {
@@ -1408,10 +1644,10 @@ if (import.meta.vitest) {
           ({ event_definitions }) => event_definitions,
           stateResolver,
           ({ result_definitions }) => result_definitions,
-          { line: 0, character: 16 } as Position
-        )
+          { line: 0, character: 16 } as Position,
+        ),
       ).toMatchObject(["mock-loc"]);
-      expect(extern.getLocations).toBeCalledWith("bar", stateResolver);
+      expect(extern.getLocations).toHaveBeenCalledWith("bar", stateResolver);
     });
 
     it("doRefer - result reference", () => {
@@ -1424,10 +1660,10 @@ if (import.meta.vitest) {
           ({ event_definitions }) => event_definitions,
           ({ state_definitions }) => state_definitions,
           resultResolver,
-          { line: 0, character: 16 } as Position
-        )
+          { line: 0, character: 16 } as Position,
+        ),
       ).toMatchObject(["mock-loc"]);
-      expect(extern.getLocations).toBeCalledWith("bar", resultResolver);
+      expect(extern.getLocations).toHaveBeenCalledWith("bar", resultResolver);
     });
 
     it("doRefer - no value", () => {
@@ -1437,10 +1673,10 @@ if (import.meta.vitest) {
           ({ event_definitions }) => event_definitions,
           ({ state_definitions }) => state_definitions,
           ({ result_definitions }) => result_definitions,
-          { line: 0, character: 15 } as Position
-        )
+          { line: 0, character: 15 } as Position,
+        ),
       ).toBeUndefined();
-      expect(extern.getLocations).not.toBeCalled();
+      expect(extern.getLocations).not.toHaveBeenCalled();
     });
 
     it("doRefer - event definition", () => {
@@ -1453,10 +1689,10 @@ if (import.meta.vitest) {
           eventResolver,
           ({ state_definitions }) => state_definitions,
           ({ result_definitions }) => result_definitions,
-          { line: 0, character: 16 } as Position
-        )
+          { line: 0, character: 16 } as Position,
+        ),
       ).toMatchObject(["mock-loc"]);
-      expect(extern.getLocations).toBeCalledWith("bar", eventResolver);
+      expect(extern.getLocations).toHaveBeenCalledWith("bar", eventResolver);
     });
 
     it("doRefer - state definition", () => {
@@ -1469,10 +1705,10 @@ if (import.meta.vitest) {
           ({ event_definitions }) => event_definitions,
           stateResolver,
           ({ result_definitions }) => result_definitions,
-          { line: 0, character: 16 } as Position
-        )
+          { line: 0, character: 16 } as Position,
+        ),
       ).toMatchObject(["mock-loc"]);
-      expect(extern.getLocations).toBeCalledWith("bar", stateResolver);
+      expect(extern.getLocations).toHaveBeenCalledWith("bar", stateResolver);
     });
 
     it("doRefer - result definition", () => {
@@ -1485,10 +1721,10 @@ if (import.meta.vitest) {
           ({ event_definitions }) => event_definitions,
           ({ state_definitions }) => state_definitions,
           resultResolver,
-          { line: 0, character: 16 } as Position
-        )
+          { line: 0, character: 16 } as Position,
+        ),
       ).toMatchObject(["mock-loc"]);
-      expect(extern.getLocations).toBeCalledWith("bar", resultResolver);
+      expect(extern.getLocations).toHaveBeenCalledWith("bar", resultResolver);
     });
 
     it("doRefer - unknown", () => {
@@ -1498,8 +1734,8 @@ if (import.meta.vitest) {
           ({ event_definitions }) => event_definitions,
           ({ state_definitions }) => state_definitions,
           ({ result_definitions }) => result_definitions,
-          { line: 0, character: 16 } as Position
-        )
+          { line: 0, character: 16 } as Position,
+        ),
       ).toBeUndefined();
     });
   });

@@ -53,6 +53,11 @@
           },
           "markdownDescription": "Configure [language identifiers](https://code.visualstudio.com/docs/languages/identifiers) where this extension is active.\n\nAll files in these languages will be scanned to collect metadata.\n\n*Note: Files with these language IDs are parsed as HTML. If they are not strictly HTML, they must still be HTML-like enough to be parsed successfully.*\n\n**Example:**  \n`[\"html\", \"php\", \"vue\"]`",
           "type": "array"
+        },
+        "keml.warnOnLogAttribute": {
+          "default": true,
+          "markdownDescription": "Display a warning when the `log` attribute is used.\n\nThe `log` attribute is intended for debugging and is generally safe, but should not be left enabled in production. This warning helps remind you to remove it.\n\nDisable this setting if you prefer not to be notified.",
+          "type": "boolean"
         }
       },
       "title": "KEML"
@@ -60,18 +65,18 @@
   },
   "description": "IntelliSense for KEML in Visual Studio Code.",
   "devDependencies": {
-    "@types/node": "22.x",
-    "@types/vscode": "^1.105.0",
-    "@vitest/coverage-v8": "^4.0.3",
-    "@vscode/vsce": "^3.6.2",
-    "dependency-cruiser": "^17.1.0",
-    "esbuild": "^0.25.11",
-    "vitest": "^4.0.3",
-    "vscode-html-languageservice": "^5.6.0"
+    "@types/node": "24.x",
+    "@types/vscode": "^1.110.0",
+    "@vitest/coverage-v8": "^4.1.2",
+    "@vscode/vsce": "^3.7.1",
+    "dependency-cruiser": "^17.3.10",
+    "esbuild": "^0.27.4",
+    "vitest": "^4.1.2",
+    "vscode-html-languageservice": "^5.6.2"
   },
   "displayName": "KEML",
   "engines": {
-    "vscode": "^1.105.0"
+    "vscode": "^1.110.0"
   },
   "extensionDependencies": [
     "vscode.html",
@@ -120,5 +125,5 @@
     "vscode:prepublish": "npm run compile",
     "watch": "esbuild src/extension.mts --bundle --outdir=out --external:vscode --external:node:path --format=cjs --define:import.meta.vitest=false --sourcemap --watch=forever &"
   },
-  "version": "0.0.4"
+  "version": "0.1.0"
 }

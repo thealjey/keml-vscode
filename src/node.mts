@@ -3,9 +3,10 @@ import { Node as LSNode } from "vscode-html-languageservice";
 /**
  * Represents a parsed node with positional and attribute data.
  */
-export class Node
-  implements Omit<LSNode, "children" | "parent" | "attributes">
-{
+export class Node implements Omit<
+  LSNode,
+  "children" | "parent" | "attributes"
+> {
   /**
    * Tag name of the node.
    */
@@ -34,7 +35,7 @@ export class Node
   /**
    * Collection of node attributes.
    */
-  attributes = new Map<string, Attr | null>();
+  attributes = new Map<string, Attr>();
 
   /**
    * Creates a new node instance.
@@ -56,7 +57,7 @@ export class Node
    * @param attr Attribute value.
    * @returns This instance for chaining.
    */
-  setAttribute(name: string, attr: Attr | null) {
+  setAttribute(name: string, attr: Attr) {
     this.attributes.set(name, attr);
     return this;
   }
@@ -83,13 +84,20 @@ export class Node
 
   /**
    * Finds an attribute located at a specific position.
+   * This only searches inside of the attribute value, so valueless attribute
+   * will never be found, which for the purposes of this function is expected.
    *
    * @param offset Character offset to test.
    * @returns The matching attribute, or undefined if none found.
    */
   findAttrAt(offset: number) {
     for (const attr of this.attributes.values()) {
-      if (attr && offset >= attr.start && offset <= attr.end) {
+      if (
+        "start" in attr &&
+        "end" in attr &&
+        offset >= attr.start &&
+        offset <= attr.end
+      ) {
         return attr;
       }
     }
@@ -159,7 +167,6 @@ if (import.meta.vitest) {
 
     it("findAttrAt skips null and out-of-range attributes", () => {
       const node = new Node({ tag: "div", start: 0, end: 0 } as any);
-      node.attributes.set("a", null);
       node.attributes.set("b", { start: 1, end: 2 } as any);
 
       expect(node.findAttrAt(0)).toBeUndefined();

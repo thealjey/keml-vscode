@@ -1,16 +1,10 @@
 const onDependentAttributes = [
-  "credentials",
   "debounce",
-  "delete",
   "error",
-  "get",
   "if:error",
   "if:loading",
   "once",
-  "post",
-  "put",
   "redirect",
-  "result",
   "throttle",
 ];
 

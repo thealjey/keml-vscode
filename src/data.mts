@@ -29,6 +29,25 @@ let fileExtGlob: string | null;
 let langIds: string[];
 let undefinedSeverity: DiagnosticSeverity | undefined;
 let unusedSeverity: DiagnosticSeverity | undefined;
+let warnLogAttribute: boolean;
+
+/**
+ * Returns whether the `log` attribute should trigger a warning.
+ *
+ * This setting controls whether a diagnostic is shown when the `log` attribute
+ * is present, reminding users to remove debugging code.
+ */
+export const getWarnOnLogAttribute = () => warnLogAttribute;
+
+/**
+ * Updates the behavior for warnings related to the `log` attribute.
+ *
+ * @param warnOnLogAttribute - If `true`, using the `log` attribute will
+ *                             produce a warning. If `false`, no warning will be
+ *                             shown.
+ */
+export const setWarnOnLogAttribute = (warnOnLogAttribute: boolean) =>
+  (warnLogAttribute = warnOnLogAttribute);
 
 /**
  * Retrieves the shared diagnostic collection.
@@ -95,9 +114,8 @@ export const getFileExtensions = () => fileExts;
  */
 export const setFileExtensions = (fileExtensions: typeof fileExts) => (
   (fileExts = fileExtensions),
-  (fileExtGlob = fileExtensions.length
-    ? `**/*.{${fileExtensions.join(",")}}`
-    : null)
+  (fileExtGlob =
+    fileExtensions.length ? `**/*.{${fileExtensions.join(",")}}` : null)
 );
 
 /**
@@ -183,6 +201,10 @@ if (import.meta.vitest) {
 
     it("include", () => {
       expect(setInclude([])).toBe(getInclude());
+    });
+
+    it("warnOnLogAttribute", () => {
+      expect(setWarnOnLogAttribute(false)).toBe(getWarnOnLogAttribute());
     });
 
     it("fileExtensions", () => {

@@ -74,10 +74,14 @@ const withFiles =
 
 /**
  * Removes documents that are no longer applicable from the internal store.
+ *
+ * @param affectsWarnOnLogAttribute - If `true`, documents containing `log`
+ *   attributes will be removed so they can be re-parsed and diagnostics
+ *   refreshed according to the current `keml.warnOnLogAttribute` setting.
  */
-export const pruneDocs = () => {
+export const pruneDocs = (affectsWarnOnLogAttribute: boolean) => {
   for (const [url, cur] of extern.docs) {
-    if (!cur.isApplicable()) {
+    if (!cur.isApplicable() || (affectsWarnOnLogAttribute && cur.has_log)) {
       extern.docs.delete(url);
     }
   }
@@ -264,7 +268,7 @@ if (import.meta.vitest) {
       expect(mockUpdateDiagnostics).toHaveBeenCalledTimes(1);
       // Ensure correct order: callback first, diagnostics second
       expect(mockUpdateDiagnostics.mock.invocationCallOrder[0]).toBeGreaterThan(
-        mockCallback.mock.invocationCallOrder[0]!
+        mockCallback.mock.invocationCallOrder[0]!,
       );
     });
 
@@ -297,7 +301,7 @@ if (import.meta.vitest) {
       expect(result).toBeUndefined();
       expect(mockCallback).not.toHaveBeenCalled();
       expect(extern.window.showErrorMessage).toHaveBeenCalledWith(
-        "Failed to open file: Error: fail"
+        "Failed to open file: Error: fail",
       );
     });
 
@@ -331,15 +335,17 @@ if (import.meta.vitest) {
     it("pruneDocs - removes docs where isApplicable returns false", () => {
       const docKeep = { isApplicable: fn(() => true) };
       const docRemove = { isApplicable: fn(() => false) };
+      const docRemove2 = { isApplicable: fn(() => true), has_log: true };
 
       const mockDocs = new Map([
         ["keep", docKeep],
         ["remove", docRemove],
+        ["remove2", docRemove2],
       ]) as any;
 
       extern.docs = mockDocs;
 
-      pruneDocs();
+      pruneDocs(true);
 
       expect([...extern.docs.keys()]).toEqual(["keep"]);
       expect(mockDocs.get("keep")).toBe(docKeep);

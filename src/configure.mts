@@ -7,6 +7,7 @@ import {
   setFileExtensions,
   setInclude,
   setLanguageIds,
+  setWarnOnLogAttribute,
 } from "./data.mts";
 import { populateDocs, pruneDocs } from "./documents.mts";
 import { registerProviders } from "./registerProviders.mts";
@@ -17,16 +18,20 @@ import { updateFileSystemWatcher } from "./updateFileSystemWatcher.mts";
  * Configures the workspace and language settings, including file extensions,
  * include/exclude patterns, severities, and diagnostic collections.
  *
- * This function updates internal configuration and registers necessary
- * providers.
+ * Updates internal configuration and registers necessary providers.
+ *
+ * @param affectsWarnOnLogAttribute - When `true`, indicates that the
+ *   configuration change may affect the display of `log` attribute warnings.
+ *   This can trigger a selective refresh of documents containing `log`
+ *   attributes to ensure diagnostics reflect the current setting.
  */
-export const configure = async () => {
+export const configure = async (affectsWarnOnLogAttribute: boolean) => {
   const excludes = extern.workspace
-    .getConfiguration("search")
+    .getConfiguration("search", null)
     .get<Record<string, boolean>>("exclude", {});
-  const keml = extern.workspace.getConfiguration("keml");
+  const keml = extern.workspace.getConfiguration("keml", null);
   const languageIds = extern.setLanguageIds(
-    keml.get<string[]>("languageIds", ["html"])
+    keml.get<string[]>("languageIds", ["html"]),
   );
   const exclude = extern.setExclude([]);
   const fileExtensions: string[] = [];
@@ -35,11 +40,12 @@ export const configure = async () => {
 
   extern.setInclude(keml.get<string[]>("include", []));
   extern.setActionUndefinedSeverity(
-    keml.get<string>("actionUndefinedSeverity", "Error")
+    keml.get<string>("actionUndefinedSeverity", "Error"),
   );
   extern.setActionUnusedSeverity(
-    keml.get<string>("actionUnusedSeverity", "Warning")
+    keml.get<string>("actionUnusedSeverity", "Warning"),
   );
+  extern.setWarnOnLogAttribute(keml.get<boolean>("warnOnLogAttribute", true));
 
   for (const pattern in excludes) {
     if (excludes[pattern]) {
@@ -63,7 +69,7 @@ export const configure = async () => {
   }
 
   extern.setFileExtensions(fileExtensions);
-  extern.pruneDocs();
+  extern.pruneDocs(affectsWarnOnLogAttribute);
 
   for ([languageId, disposables] of Array.from(extern.languageDisposables)) {
     if (!languageIds.includes(languageId)) {
@@ -82,7 +88,7 @@ export const configure = async () => {
     if (!extern.languageDisposables.has(languageId)) {
       extern.languageDisposables.set(
         languageId,
-        extern.registerProviders(languageId)
+        extern.registerProviders(languageId),
       );
     }
   }
@@ -96,6 +102,7 @@ let extern = {
   setActionUnusedSeverity,
   setExclude,
   setFileExtensions,
+  setWarnOnLogAttribute,
   setInclude,
   setLanguageIds,
   populateDocs,
@@ -140,6 +147,7 @@ if (import.meta.vitest) {
               return "Error";
             if (section === "keml" && key === "actionUnusedSeverity")
               return "Warning";
+            if (section === "keml" && key === "warnOnLogAttribute") return 42;
             return defaultValue;
           },
         })),
@@ -168,6 +176,7 @@ if (import.meta.vitest) {
       extern.setActionUndefinedSeverity = fn();
       extern.setActionUnusedSeverity = fn();
       extern.setFileExtensions = fn();
+      extern.setWarnOnLogAttribute = fn();
       extern.pruneDocs = fn();
       extern.populateDocs = fn();
       extern.updateDiagnosticCollection = fn();
@@ -175,7 +184,7 @@ if (import.meta.vitest) {
       extern.registerProviders = registerProvidersMock;
       extern.languageDisposables = languageDisposablesMock;
 
-      await configure();
+      await configure(false);
 
       // Excludes populated correctly
       expect(excludeMock).toContain("**/node_modules");
@@ -198,6 +207,7 @@ if (import.meta.vitest) {
       expect(extern.populateDocs).toHaveBeenCalled();
       expect(extern.updateDiagnosticCollection).toHaveBeenCalled();
       expect(extern.updateFileSystemWatcher).toHaveBeenCalled();
+      expect(extern.setWarnOnLogAttribute).toHaveBeenCalledWith(42);
 
       // Providers registered for languageIds
       expect(registerProvidersMock).toHaveBeenCalledWith("html");
@@ -238,7 +248,7 @@ if (import.meta.vitest) {
       extern.updateFileSystemWatcher = fn();
       extern.registerProviders = fn();
 
-      await configure();
+      await configure(true);
 
       expect(oldDisposeMock).toHaveBeenCalled();
       expect(extern.languageDisposables.has("oldLang")).toBe(false);
