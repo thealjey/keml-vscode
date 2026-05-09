@@ -18,12 +18,20 @@ const CUSTOM_EVENT_DESCRIPTIONS: Record<string, string> = {
 * Complements \`reveal\`, allowing visibility-based behaviors.`,
   navigate: `* Triggered on **browser history changes** via the History API.
 * Useful for responding to in-app navigation without a full page reload.`,
-  result: `* Triggered **after a successful request and render of a response**.
+  result: `* Triggered **after receiving a response with a successful status code**.
 * Fires once the new content is fully rendered and all elements with declared
   actions are ready to run.
 * Even actions on elements rendered dynamically through this response will fire
   correctly.
 * Useful for chaining actions after dynamic updates.`,
+  failure: `* Triggered **after receiving a response with an unsuccessful status code**.
+* Fires once the new content is fully rendered and all elements with declared
+  actions are ready to run.
+* Even actions on elements rendered dynamically through this response will fire
+  correctly.
+* Useful for chaining actions after dynamic updates.`,
+  discover: `* Triggered **when the element is first discovered**.
+* Will be re-emitted if the \`on:discover\` attribute is removed and then added back again.`,
 };
 
 /**

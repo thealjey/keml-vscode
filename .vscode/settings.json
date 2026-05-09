@@ -34,13 +34,13 @@
   "files.insertFinalNewline": true,
   "files.trimFinalNewlines": true,
   "files.trimTrailingWhitespace": true,
+  // Turn off tsc task auto detection since we have the necessary tasks as npm scripts
+  "js/ts.tsc.autoDetect": "off",
   "prettier.arrowParens": "avoid",
   "prettier.experimentalTernaries": true,
   "search.exclude": {
     "out": true
   },
   "terminal.integrated.stickyScroll.enabled": false,
-  // Turn off tsc task auto detection since we have the necessary tasks as npm scripts
-  "typescript.tsc.autoDetect": "off",
   "workbench.tree.enableStickyScroll": false
 }

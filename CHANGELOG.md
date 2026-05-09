@@ -1,3 +1,10 @@
+## 0.1.1
+
+- fixed duplicating attribute value suggestions
+- removed the `name` and `value` attribute usage restrictions, because KEML
+  itself does't have them anymore
+- added support for the 2 new custom event types: `failure` and `discover`
+
 ## 0.1.0
 
 - Updated dependencies.

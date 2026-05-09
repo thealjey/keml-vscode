@@ -80,10 +80,7 @@ const provider: IHTMLDataProvider = {
     if (!attributed) {
       tagged.set(
         attribute,
-        (attributed = extern.mergeDefinitions(
-          extern.staticProvider.provideValues(tag, attribute),
-          extern.defaultProvider.provideValues(tag, attribute),
-        )),
+        (attributed = extern.staticProvider.provideValues(tag, attribute)),
       );
     }
 
@@ -195,20 +192,17 @@ if (import.meta.vitest) {
     });
 
     it("provideValues caches merged results for non-reference attributes", () => {
-      const merged = ["val1"];
-      const staticProvider = { provideValues: fn(() => ["s"]) } as any;
-      const defaultProvider = { provideValues: fn(() => ["d"]) } as any;
+      const provided = ["s"];
+      const staticProvider = { provideValues: fn(() => provided) } as any;
       extern.isEventReference = fn(() => false) as any;
       extern.isStateReference = fn(() => false) as any;
       extern.isResultReference = fn(() => false) as any;
-      extern.mergeDefinitions = fn(() => merged) as any;
       extern.staticProvider = staticProvider;
-      extern.defaultProvider = defaultProvider;
       extern.providedValues = new Map();
 
-      expect(provider.provideValues("tag", "attr")).toBe(merged);
+      expect(provider.provideValues("tag", "attr")).toBe(provided);
       // cached result should be reused
-      expect(provider.provideValues("tag", "attr")).toBe(merged);
+      expect(provider.provideValues("tag", "attr")).toBe(provided);
     });
 
     it("provideAttributes merges, expands, and filters correctly", () => {

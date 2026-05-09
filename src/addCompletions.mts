@@ -25,15 +25,22 @@ export const addCompletions = (
   range: Range,
   valueGetter: (name: string) => IValueData,
 ) => {
-  const done = new Set<string>();
-  let action, item, valueData;
+  let action, item, valueData, found;
 
   for (const cur of extern.docs.values()) {
     for (action of extern.combineIterators(
       definitionsGetter(cur).keys(),
       referencesGetter(cur).keys(),
     )) {
-      if (done.has(action)) {
+      found = false;
+      for (const { label } of completions) {
+        if (
+          (found = (typeof label === "string" ? label : label.label) === action)
+        ) {
+          break;
+        }
+      }
+      if (found) {
         continue;
       }
       valueData = extern.getExistingActionValue(
@@ -50,7 +57,6 @@ export const addCompletions = (
       item.range = range;
       item.documentation = extern.convertDocumentation(valueData.description);
       completions.push(item);
-      done.add(action);
     }
   }
 };
@@ -121,7 +127,7 @@ if (import.meta.vitest) {
     });
 
     it("skips already processed actions", () => {
-      const completions: any[] = [];
+      const completions: any[] = [{ label: { label: "dup" } }];
       const fakeRange = {} as any;
 
       const mockDocs = new Map([["doc1", {}]]);
