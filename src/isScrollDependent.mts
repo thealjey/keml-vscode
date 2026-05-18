@@ -13,6 +13,7 @@ import { isScrollPosition } from "./isScrollPosition.mts";
 export const isScrollDependent = (name: string) =>
   name === "relative" ||
   name === "x-relative" ||
+  name === "link:relative" ||
   isBehavior(name) ||
   isScrollPosition(name);
 
@@ -24,6 +25,7 @@ if (import.meta.vitest) {
     it("checks matching", () => {
       expect(isScrollDependent("relative")).toBe(true);
       expect(isScrollDependent("x-relative")).toBe(true);
+      expect(isScrollDependent("link:relative")).toBe(true);
       expect(isScrollDependent("behavior")).toBe(true);
       expect(isScrollDependent("top")).toBe(true);
       expect(isScrollDependent("random")).toBe(false);

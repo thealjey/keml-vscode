@@ -1,3 +1,9 @@
+## 0.1.2
+
+- support for `link:` presence hinting
+- the `measure` attribute
+- reference action type
+
 ## 0.1.1
 
 - fixed duplicating attribute value suggestions

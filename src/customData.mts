@@ -3,7 +3,14 @@ import { getEndpointAttrs } from "./getEndpointAttrs.mts";
 import { getEventAttrs } from "./getEventAttrs.mts";
 import { getMethodValue } from "./getMethodValue.mts";
 
-const customEvents = ["conceal", "navigate", "result", "reveal"];
+const customEvents = [
+  "conceal",
+  "navigate",
+  "result",
+  "reveal",
+  "failure",
+  "discover",
+];
 const methods = {
   GET: ["href", "action", "src", "get"],
   POST: ["post"],
@@ -214,6 +221,22 @@ Specifies scrolling behavior for \`scroll\`.
 Part of the scrolling attribute set:
 \`scroll\`, \`relative\`, \`behavior\`, \`top\`, \`left\`.
 `,
+        },
+      },
+      {
+        name: "measure",
+        valueSet: "measure",
+        description: {
+          kind: MarkupKind.Markdown,
+          value: `**Attribute**: \`measure\`
+
+Selects which measurement strategy is used for the referenced element size.
+
+Used with:
+- \`ref:width\`
+- \`ref:height\`
+
+Defaults to \`borderBoxSize\`.`,
         },
       },
       {
@@ -930,6 +953,78 @@ Enables animated scrolling to the target position.
 
 The element transitions gradually toward the resolved position instead of
 jumping instantly.`,
+          },
+        },
+      ],
+    },
+    {
+      name: "measure",
+      values: [
+        {
+          name: "borderBoxSize",
+          description: {
+            kind: MarkupKind.Markdown,
+            value: `**Value**: \`borderBoxSize\`
+
+Measures the element's border box size.
+
+Includes:
+- content
+- padding
+- border
+
+Excludes:
+- margin
+
+This is the default measurement mode and matches \`ResizeObserverEntry.borderBoxSize\`.`,
+          },
+        },
+        {
+          name: "contentBoxSize",
+          description: {
+            kind: MarkupKind.Markdown,
+            value: `**Value**: \`contentBoxSize\`
+
+Measures the element's content box size.
+
+Includes:
+- content
+
+Excludes:
+- padding
+- border
+- margin
+
+Matches \`ResizeObserverEntry.contentBoxSize\`.`,
+          },
+        },
+        {
+          name: "devicePixelContentBoxSize",
+          description: {
+            kind: MarkupKind.Markdown,
+            value: `**Value**: \`devicePixelContentBoxSize\`
+
+Measures the element's content box size in device pixels instead of CSS pixels.
+
+Useful for:
+- high-DPI rendering
+- canvas synchronization
+- pixel-accurate drawing
+
+Matches \`ResizeObserverEntry.devicePixelContentBoxSize\`.`,
+          },
+        },
+        {
+          name: "contentRect",
+          description: {
+            kind: MarkupKind.Markdown,
+            value: `**Value**: \`contentRect\`
+
+Measures the element using the legacy \`contentRect\` rectangle.
+
+Returns dimensions of the content area in CSS pixels.
+
+Matches \`ResizeObserverEntry.contentRect\`.`,
           },
         },
       ],

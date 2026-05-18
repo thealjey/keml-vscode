@@ -1,3 +1,4 @@
+import type { Mock, MockInstance } from "vitest";
 import {
   Diagnostic,
   DiagnosticSeverity,
@@ -33,6 +34,9 @@ import { getEventReferences } from "./getEventReferences.mts";
 import { getEventValue } from "./getEventValue.mts";
 import { getExistingActionValue } from "./getExistingActionValue.mts";
 import { getLocations } from "./getLocations.mts";
+import { getReferenceDefinitions } from "./getReferenceDefinitions.mts";
+import { getReferenceReferences } from "./getReferenceReferences.mts";
+import { getReferenceValue } from "./getReferenceValue.mts";
 import { getResultDefinitions } from "./getResultDefinitions.mts";
 import { getResultReferences } from "./getResultReferences.mts";
 import { getResultValue } from "./getResultValue.mts";
@@ -44,7 +48,10 @@ import { isEventDefinition } from "./isEventDefinition.mts";
 import { isEventFilter } from "./isEventFilter.mts";
 import { isEventReference } from "./isEventReference.mts";
 import { isLog } from "./isLog.mts";
+import { isMeasure } from "./isMeasure.mts";
 import { isPosition } from "./isPosition.mts";
+import { isReferenceDefinition } from "./isReferenceDefinition.mts";
+import { isReferenceReference } from "./isReferenceReference.mts";
 import { isResultDefinition } from "./isResultDefinition.mts";
 import { isResultReference } from "./isResultReference.mts";
 import { isScroll } from "./isScroll.mts";
@@ -75,8 +82,14 @@ const validPosition = [
   "append",
 ];
 const validBehavior = ["auto", "instant", "smooth"];
+const validMeasure = [
+  "borderBoxSize",
+  "contentBoxSize",
+  "devicePixelContentBoxSize",
+  "contentRect",
+];
 const validScrollPosition = ["start", "center", "end"];
-const DEP_TPL = t`'${"name"}' is unused because it has no effect without '${"depends"}' (or 'x-' prefixed equivalents).`;
+const DEP_TPL = t`'${"name"}' is unused because it has no effect without '${"depends"}' (or 'x-' and 'link:' prefixed equivalents).`;
 
 /**
  * Represents a document with diagnostics, references, and definitions.
@@ -116,6 +129,16 @@ export class Document {
    * Map of result action names to their reference ranges.
    */
   result_references!: Map<string, Range[]>;
+
+  /**
+   * Map of reference action names to their definition ranges.
+   */
+  reference_definitions!: Map<string, Range[]>;
+
+  /**
+   * Map of reference action names to their reference ranges.
+   */
+  reference_references!: Map<string, Range[]>;
 
   has_log!: boolean;
 
@@ -354,6 +377,14 @@ export class Document {
         range,
         getResultValue,
       );
+    } else if (extern.isReferenceDefinition(name)) {
+      extern.addCompletions(
+        completions,
+        getReferenceDefinitions,
+        getReferenceReferences,
+        range,
+        getReferenceValue,
+      );
     }
 
     return completions;
@@ -400,6 +431,9 @@ export class Document {
     } else if (extern.isResultDefinition(name)) {
       definitionsGetter = getResultDefinitions;
       valueGetter = getResultValue;
+    } else if (extern.isReferenceDefinition(name)) {
+      definitionsGetter = getReferenceDefinitions;
+      valueGetter = getReferenceValue;
     } else {
       return;
     }
@@ -420,11 +454,12 @@ export class Document {
   }
 
   /**
-   * Resolves references for events, states, or results at a position.
+   * Resolves references for events, states, results or references at a position.
    *
    * @param eventResolver - Resolver for event definitions.
    * @param stateResolver - Resolver for state definitions.
    * @param resultResolver - Resolver for result definitions.
+   * @param referenceResolver - Resolver for reference definitions.
    * @param position - Position to resolve references.
    * @returns Locations of references or undefined.
    */
@@ -432,6 +467,7 @@ export class Document {
     eventResolver: (cur: Document) => Map<string, Range[]>,
     stateResolver: (cur: Document) => Map<string, Range[]>,
     resultResolver: (cur: Document) => Map<string, Range[]>,
+    referenceResolver: (cur: Document) => Map<string, Range[]>,
     position: Position,
   ) {
     const offset = this.offsetAt(position);
@@ -459,6 +495,10 @@ export class Document {
       return extern.getLocations(value, resultResolver);
     }
 
+    if (extern.isReferenceReference(name)) {
+      return extern.getLocations(value, referenceResolver);
+    }
+
     const range = this.getWordRangeAtPosition(position);
     if (!range) {
       return;
@@ -476,6 +516,10 @@ export class Document {
 
     if (extern.isResultDefinition(name)) {
       return extern.getLocations(value, resultResolver);
+    }
+
+    if (extern.isReferenceDefinition(name)) {
+      return extern.getLocations(value, referenceResolver);
     }
 
     return;
@@ -606,7 +650,11 @@ export class Document {
   ) {
     for (let i = 0, l = depends.length, d; i < l; ++i) {
       d = depends[i]!;
-      if (d in attributes || `x-${d}` in attributes) {
+      if (
+        d in attributes ||
+        `x-${d}` in attributes ||
+        `link:${d}` in attributes
+      ) {
         return;
       }
     }
@@ -624,7 +672,8 @@ export class Document {
   /**
    * Parses the document as HTML, extracting nodes, attributes, and definitions.
    *
-   * Updates diagnostics, event/state/result definitions, and reference maps.
+   * Updates diagnostics, event/state/result/reference definitions, and
+   * reference maps.
    */
   private parseHTMLDocument() {
     this.diagnostics = [];
@@ -636,6 +685,8 @@ export class Document {
     this.state_references = new Map<string, Range[]>();
     this.result_definitions = new Map<string, Range[]>();
     this.result_references = new Map<string, Range[]>();
+    this.reference_definitions = new Map<string, Range[]>();
+    this.reference_references = new Map<string, Range[]>();
     this.htmlDoc = extern.service.parseHTMLDocument(this.textDoc);
 
     const stack = [this.htmlDoc.roots];
@@ -673,12 +724,21 @@ export class Document {
               extern.addDefinitionRanges(this.result_definitions, value, range);
             } else if (extern.isResultReference(name)) {
               extern.addRange(this.result_references, value, range);
+            } else if (extern.isReferenceDefinition(name)) {
+              extern.addDefinitionRanges(
+                this.reference_definitions,
+                value,
+                range,
+              );
+            } else if (extern.isReferenceReference(name)) {
+              extern.addRange(this.reference_references, value, range);
             }
           }
           if (
             extern.isEventReference(name) ||
             extern.isStateReference(name) ||
-            extern.isResultReference(name)
+            extern.isResultReference(name) ||
+            extern.isReferenceReference(name)
           ) {
             if (!value) {
               diagnostic = new extern.Diagnostic(
@@ -734,6 +794,12 @@ Expected one of: ${validPosition.join(", ")}.`,
           if (extern.isScrollDependent(name)) {
             this.addDependsDiagnostic(attributes, fullRange, name, ["scroll"]);
           }
+          if (extern.isMeasure(name)) {
+            this.addDependsDiagnostic(attributes, fullRange, name, [
+              "ref:width",
+              "ref:height",
+            ]);
+          }
           if (
             extern.isBehavior(name) &&
             !validBehavior.includes(value) &&
@@ -745,6 +811,22 @@ Expected one of: ${validPosition.join(", ")}.`,
               `Invalid scroll behavior.
 Expected one of: ${validBehavior.join(", ")}.
 Falling back to "auto".`,
+              DiagnosticSeverity.Error,
+            );
+            diagnostic.source = "KEML";
+            this.diagnostics.push(diagnostic);
+          }
+          if (
+            extern.isMeasure(name) &&
+            !validMeasure.includes(value) &&
+            !extern.INVALID_PATTERN.test(value) &&
+            range
+          ) {
+            diagnostic = new extern.Diagnostic(
+              range,
+              `Invalid width/height measure.
+Expected one of: ${validMeasure.join(", ")}.
+Falling back to "borderBoxSize".`,
               DiagnosticSeverity.Error,
             );
             diagnostic.source = "KEML";
@@ -798,8 +880,10 @@ Specify either "top" or "left" to enable scrolling.`,
             extern.isScroll(name) &&
             !("top" in attributes) &&
             !("x-top" in attributes) &&
+            !("link:top" in attributes) &&
             !("left" in attributes) &&
-            !("x-left" in attributes)
+            !("x-left" in attributes) &&
+            !("link:left" in attributes)
           ) {
             diagnostic = new extern.Diagnostic(
               fullRange,
@@ -839,11 +923,14 @@ let extern = {
   isPosition,
   isScrollDependent,
   isBehavior,
+  isMeasure,
   isScrollPosition,
   isScroll,
   isLog,
   isResultDefinition,
   isResultReference,
+  isReferenceDefinition,
+  isReferenceReference,
   isStateDefinition,
   isStateReference,
   isTagSseDependent,
@@ -856,9 +943,6 @@ let extern = {
   sortByZero,
   updateDiagnosticCollection,
 };
-
-/* v8 ignore start */
-import type { Mock, MockInstance } from "vitest";
 
 if (import.meta.vitest) {
   const {
@@ -1035,6 +1119,7 @@ if (import.meta.vitest) {
         isEventReference: fn().mockReturnValue(false) as any,
         isPosition: fn().mockReturnValue(false) as any,
         isBehavior: fn().mockReturnValue(false) as any,
+        isMeasure: fn().mockReturnValue(false) as any,
         isScroll: fn().mockReturnValue(false) as any,
         isScrollDependent: fn().mockReturnValue(false) as any,
         isScrollPosition: fn().mockReturnValue(false) as any,
@@ -1042,6 +1127,8 @@ if (import.meta.vitest) {
         getWarnOnLogAttribute: fn().mockReturnValue(true) as any,
         isResultDefinition: fn().mockReturnValue(false) as any,
         isResultReference: fn().mockReturnValue(false) as any,
+        isReferenceDefinition: fn().mockReturnValue(false) as any,
+        isReferenceReference: fn().mockReturnValue(false) as any,
         isStateDefinition: fn().mockReturnValue(false),
         isStateReference: fn().mockReturnValue(false) as any,
         isTagSseDependent: fn().mockReturnValue(false),
@@ -1152,6 +1239,17 @@ if (import.meta.vitest) {
       );
     });
 
+    it("parseHTMLDocument - reference definition", () => {
+      extern.isReferenceDefinition = fn().mockReturnValue(true) as any;
+      const cur = new TestDocument('<input value="lol">');
+      expect(extern.isReferenceDefinition).toHaveBeenCalledWith("value");
+      expect(extern.addDefinitionRanges).toHaveBeenCalledWith(
+        cur.reference_definitions,
+        "lol",
+        { end: { character: 17, line: 0 }, start: { character: 14, line: 0 } },
+      );
+    });
+
     it("parseHTMLDocument - event reference - no value", () => {
       extern.isEventReference = fn().mockReturnValue(true) as any;
       const cur = new TestDocument('<input value="">');
@@ -1222,6 +1320,15 @@ if (import.meta.vitest) {
       extern.isEventFilter = fn(name => name.startsWith("event:"));
       const cur = new TestDocument(
         '<input if="" x-on:value="" event:value="lol">',
+      );
+      expect(extern.isEventFilter).toHaveBeenCalledWith("event:value");
+      expect(cur.diagnostics.length).toBe(0);
+    });
+
+    it("addDependsDiagnostic - in link:attributes", () => {
+      extern.isEventFilter = fn(name => name.startsWith("event:"));
+      const cur = new TestDocument(
+        '<input if="" link:on:value="" event:value="lol">',
       );
       expect(extern.isEventFilter).toHaveBeenCalledWith("event:value");
       expect(cur.diagnostics.length).toBe(0);
@@ -1347,6 +1454,21 @@ if (import.meta.vitest) {
       const cur = new TestDocument('<input value="lol">');
       expect(extern.isBehavior).toHaveBeenCalledWith("value");
       expect(cur.diagnostics.length).toBe(1);
+    });
+
+    it("parseHTMLDocument - a measure", () => {
+      extern.isMeasure = fn().mockReturnValue(true) as any;
+      const cur = new TestDocument('<input value="lol">');
+      expect(extern.isMeasure).toHaveBeenCalledWith("value");
+      expect(cur.diagnostics.length).toBe(1);
+    });
+
+    it("parseHTMLDocument - a measure with pattern", () => {
+      extern.isMeasure = fn().mockReturnValue(true) as any;
+      extern.INVALID_PATTERN = { test: () => false } as any;
+      const cur = new TestDocument('<input value="lol">');
+      expect(extern.isMeasure).toHaveBeenCalledWith("value");
+      expect(cur.diagnostics.length).toBe(2);
     });
 
     it("parseHTMLDocument - a scroll position", () => {
@@ -1503,6 +1625,20 @@ if (import.meta.vitest) {
       );
     });
 
+    it("doComplete - reference definition", () => {
+      extern.isReferenceDefinition = fn().mockReturnValue(true) as any;
+      const cur = new TestDocument(' <input value="bar">');
+      cur.doComplete({ line: 0, character: 16 } as Position);
+      expect(extern.isReferenceDefinition).toHaveBeenCalledWith("value");
+      expect(extern.addCompletions).toHaveBeenCalledWith(
+        ["foo"],
+        getReferenceDefinitions,
+        getReferenceReferences,
+        { end: { character: 18, line: 0 }, start: { character: 15, line: 0 } },
+        getReferenceValue,
+      );
+    });
+
     it("doHover - no node", () => {
       const cur = new TestDocument(" <input>");
       expect(
@@ -1593,6 +1729,29 @@ if (import.meta.vitest) {
       expect(extern.convertDocumentation).toHaveBeenCalledWith("baz");
     });
 
+    it("doHover - reference definition", () => {
+      extern.isReferenceDefinition = fn().mockReturnValue(true) as any;
+      extern.getExistingActionValue = fn().mockReturnValue({
+        description: "baz",
+      });
+      const cur = new TestDocument(' <input value="bar">');
+      expect(cur.doHover({ line: 0, character: 16 } as Position)).toMatchObject(
+        {
+          contents: "baz",
+          range: {
+            end: { character: 18, line: 0 },
+            start: { character: 15, line: 0 },
+          },
+        },
+      );
+      expect(extern.getExistingActionValue).toHaveBeenCalledWith(
+        "bar",
+        getReferenceDefinitions,
+        getReferenceValue,
+      );
+      expect(extern.convertDocumentation).toHaveBeenCalledWith("baz");
+    });
+
     it("doRefer - no node", () => {
       const cur = new TestDocument(" <input>");
       expect(
@@ -1600,6 +1759,7 @@ if (import.meta.vitest) {
           ({ event_definitions }) => event_definitions,
           ({ state_definitions }) => state_definitions,
           ({ result_definitions }) => result_definitions,
+          ({ reference_definitions }) => reference_definitions,
           { line: 0, character: 0 } as Position,
         ),
       ).toBeUndefined();
@@ -1613,6 +1773,7 @@ if (import.meta.vitest) {
           ({ event_definitions }) => event_definitions,
           ({ state_definitions }) => state_definitions,
           ({ result_definitions }) => result_definitions,
+          ({ reference_definitions }) => reference_definitions,
           { line: 0, character: 6 } as Position,
         ),
       ).toBeUndefined();
@@ -1628,6 +1789,7 @@ if (import.meta.vitest) {
           eventResolver,
           ({ state_definitions }) => state_definitions,
           ({ result_definitions }) => result_definitions,
+          ({ reference_definitions }) => reference_definitions,
           { line: 0, character: 16 } as Position,
         ),
       ).toMatchObject(["mock-loc"]);
@@ -1644,6 +1806,7 @@ if (import.meta.vitest) {
           ({ event_definitions }) => event_definitions,
           stateResolver,
           ({ result_definitions }) => result_definitions,
+          ({ reference_definitions }) => reference_definitions,
           { line: 0, character: 16 } as Position,
         ),
       ).toMatchObject(["mock-loc"]);
@@ -1660,10 +1823,31 @@ if (import.meta.vitest) {
           ({ event_definitions }) => event_definitions,
           ({ state_definitions }) => state_definitions,
           resultResolver,
+          ({ reference_definitions }) => reference_definitions,
           { line: 0, character: 16 } as Position,
         ),
       ).toMatchObject(["mock-loc"]);
       expect(extern.getLocations).toHaveBeenCalledWith("bar", resultResolver);
+    });
+
+    it("doRefer - result reference", () => {
+      extern.isReferenceReference = fn().mockReturnValue(true) as any;
+      const cur = new TestDocument(' <input value="bar">');
+      const referenceResolver = ({ reference_definitions }: Document) =>
+        reference_definitions;
+      expect(
+        cur.doRefer(
+          ({ event_definitions }) => event_definitions,
+          ({ state_definitions }) => state_definitions,
+          ({ result_definitions }) => result_definitions,
+          referenceResolver,
+          { line: 0, character: 16 } as Position,
+        ),
+      ).toMatchObject(["mock-loc"]);
+      expect(extern.getLocations).toHaveBeenCalledWith(
+        "bar",
+        referenceResolver,
+      );
     });
 
     it("doRefer - no value", () => {
@@ -1673,6 +1857,7 @@ if (import.meta.vitest) {
           ({ event_definitions }) => event_definitions,
           ({ state_definitions }) => state_definitions,
           ({ result_definitions }) => result_definitions,
+          ({ reference_definitions }) => reference_definitions,
           { line: 0, character: 15 } as Position,
         ),
       ).toBeUndefined();
@@ -1689,6 +1874,7 @@ if (import.meta.vitest) {
           eventResolver,
           ({ state_definitions }) => state_definitions,
           ({ result_definitions }) => result_definitions,
+          ({ reference_definitions }) => reference_definitions,
           { line: 0, character: 16 } as Position,
         ),
       ).toMatchObject(["mock-loc"]);
@@ -1705,6 +1891,7 @@ if (import.meta.vitest) {
           ({ event_definitions }) => event_definitions,
           stateResolver,
           ({ result_definitions }) => result_definitions,
+          ({ reference_definitions }) => reference_definitions,
           { line: 0, character: 16 } as Position,
         ),
       ).toMatchObject(["mock-loc"]);
@@ -1721,10 +1908,31 @@ if (import.meta.vitest) {
           ({ event_definitions }) => event_definitions,
           ({ state_definitions }) => state_definitions,
           resultResolver,
+          ({ reference_definitions }) => reference_definitions,
           { line: 0, character: 16 } as Position,
         ),
       ).toMatchObject(["mock-loc"]);
       expect(extern.getLocations).toHaveBeenCalledWith("bar", resultResolver);
+    });
+
+    it("doRefer - result definition", () => {
+      extern.isReferenceDefinition = fn().mockReturnValue(true) as any;
+      const cur = new TestDocument(' <input value="bar">');
+      const referenceResolver = ({ reference_definitions }: Document) =>
+        reference_definitions;
+      expect(
+        cur.doRefer(
+          ({ event_definitions }) => event_definitions,
+          ({ state_definitions }) => state_definitions,
+          ({ result_definitions }) => result_definitions,
+          referenceResolver,
+          { line: 0, character: 16 } as Position,
+        ),
+      ).toMatchObject(["mock-loc"]);
+      expect(extern.getLocations).toHaveBeenCalledWith(
+        "bar",
+        referenceResolver,
+      );
     });
 
     it("doRefer - unknown", () => {
@@ -1734,6 +1942,7 @@ if (import.meta.vitest) {
           ({ event_definitions }) => event_definitions,
           ({ state_definitions }) => state_definitions,
           ({ result_definitions }) => result_definitions,
+          ({ reference_definitions }) => reference_definitions,
           { line: 0, character: 16 } as Position,
         ),
       ).toBeUndefined();

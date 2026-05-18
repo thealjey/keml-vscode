@@ -18,7 +18,8 @@ const sseDependentAttributes = [
  */
 export const isSseDependent = (name: string) =>
   sseDependentAttributes.includes(name) ||
-  (name.startsWith("x-") && sseDependentAttributes.includes(name.slice(2)));
+  (name.startsWith("x-") && sseDependentAttributes.includes(name.slice(2))) ||
+  (name.startsWith("link:") && sseDependentAttributes.includes(name.slice(5)));
 
 /* v8 ignore start */
 if (import.meta.vitest) {
@@ -28,6 +29,7 @@ if (import.meta.vitest) {
     it("returns true only for predefined, and x- variants", () => {
       expect(isSseDependent("credentials")).toBe(true);
       expect(isSseDependent("x-delete")).toBe(true);
+      expect(isSseDependent("link:delete")).toBe(true);
       expect(isSseDependent("random")).toBe(false);
     });
   });

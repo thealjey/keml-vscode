@@ -18,14 +18,15 @@ const UNDECLARED_TPL = t`Cannot find ${"kind"} action '${"action"}'.`;
  *                             the document.
  * @param referenceResolver - Function that returns a map of references for the
  *                            document.
- * @param kind - Kind of action being analyzed ("event", "state", or "result").
+ * @param kind - Kind of action being analyzed
+ *   ("event", "state", "result" or "reference").
  */
 export const addReferenceDiagnostics = (
   diagnostics: Diagnostic[],
   cur: Document,
   definitionResolver: (cur: Document) => Map<string, Range[]>,
   referenceResolver: (cur: Document) => Map<string, Range[]>,
-  kind: "event" | "state" | "result"
+  kind: "event" | "state" | "result" | "reference",
 ) => {
   const actionUnusedSeverity = extern.getActionUnusedSeverity();
   const actionUndefinedSeverity = extern.getActionUndefinedSeverity();
@@ -39,9 +40,9 @@ export const addReferenceDiagnostics = (
       kind,
       UNUSED_TPL,
       actionUnusedSeverity,
-      actionUnusedSeverity === DiagnosticSeverity.Warning
-        ? [DiagnosticTag.Unnecessary]
-        : undefined
+      actionUnusedSeverity === DiagnosticSeverity.Warning ?
+        [DiagnosticTag.Unnecessary]
+      : undefined,
     );
   }
   if (actionUndefinedSeverity != null) {
@@ -52,7 +53,7 @@ export const addReferenceDiagnostics = (
       definitionResolver,
       kind,
       UNDECLARED_TPL,
-      actionUndefinedSeverity
+      actionUndefinedSeverity,
     );
   }
 };
@@ -100,10 +101,10 @@ if (import.meta.vitest) {
       const refResolver = fn();
 
       extern.getActionUnusedSeverity = fn().mockReturnValue(
-        DiagnosticSeverity.Warning
+        DiagnosticSeverity.Warning,
       );
       extern.getActionUndefinedSeverity = fn().mockReturnValue(
-        DiagnosticSeverity.Error
+        DiagnosticSeverity.Error,
       );
       const mockAddDiagnostics = (extern.addPartialReferenceDiagnostics = fn());
 
@@ -112,7 +113,7 @@ if (import.meta.vitest) {
         cur,
         defResolver,
         refResolver,
-        "state"
+        "state",
       );
 
       expect(mockAddDiagnostics).toHaveBeenCalledTimes(2);
@@ -146,10 +147,10 @@ if (import.meta.vitest) {
       const refResolver = fn();
 
       extern.getActionUnusedSeverity = fn().mockReturnValue(
-        DiagnosticSeverity.Error
+        DiagnosticSeverity.Error,
       );
       extern.getActionUndefinedSeverity = fn().mockReturnValue(
-        DiagnosticSeverity.Error
+        DiagnosticSeverity.Error,
       );
       const mockAddDiagnostics = (extern.addPartialReferenceDiagnostics = fn());
 
@@ -158,7 +159,7 @@ if (import.meta.vitest) {
         cur,
         defResolver,
         refResolver,
-        "state"
+        "state",
       );
 
       expect(mockAddDiagnostics).toHaveBeenCalledTimes(2);

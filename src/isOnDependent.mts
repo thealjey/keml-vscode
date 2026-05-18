@@ -20,7 +20,8 @@ const onDependentAttributes = [
 export const isOnDependent = (name: string) =>
   name.startsWith("h-") ||
   onDependentAttributes.includes(name) ||
-  (name.startsWith("x-") && onDependentAttributes.includes(name.slice(2)));
+  (name.startsWith("x-") && onDependentAttributes.includes(name.slice(2))) ||
+  (name.startsWith("link:") && onDependentAttributes.includes(name.slice(5)));
 
 /* v8 ignore start */
 if (import.meta.vitest) {
@@ -31,6 +32,7 @@ if (import.meta.vitest) {
       expect(isOnDependent("h-custom")).toBe(true);
       expect(isOnDependent("debounce")).toBe(true);
       expect(isOnDependent("x-throttle")).toBe(true);
+      expect(isOnDependent("link:throttle")).toBe(true);
       expect(isOnDependent("random")).toBe(false);
     });
   });

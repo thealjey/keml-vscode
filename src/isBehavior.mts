@@ -4,7 +4,7 @@
  * @returns A boolean indicating if the name represents a behavior.
  */
 export const isBehavior = (name: string) =>
-  name === "behavior" || name === "x-behavior";
+  name === "behavior" || name === "x-behavior" || name === "link:behavior";
 
 /* v8 ignore start */
 if (import.meta.vitest) {
@@ -14,6 +14,7 @@ if (import.meta.vitest) {
     it("returns true only for 'behavior' and 'x-behavior'", () => {
       expect(isBehavior("behavior")).toBe(true);
       expect(isBehavior("x-behavior")).toBe(true);
+      expect(isBehavior("link:behavior")).toBe(true);
       expect(isBehavior("top")).toBe(false);
     });
   });

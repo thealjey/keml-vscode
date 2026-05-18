@@ -9,8 +9,10 @@ import { isScroll } from "./isScroll.mts";
 export const isEventReference = (name: string) =>
   name === "on" ||
   name === "x-on" ||
+  name === "link:on" ||
   name === "reset" ||
   name === "x-reset" ||
+  name === "link:reset" ||
   isScroll(name);
 
 /* v8 ignore start */
@@ -21,8 +23,10 @@ if (import.meta.vitest) {
     it("matches name", () => {
       expect(isEventReference("on")).toBe(true);
       expect(isEventReference("x-on")).toBe(true);
+      expect(isEventReference("link:on")).toBe(true);
       expect(isEventReference("reset")).toBe(true);
       expect(isEventReference("x-reset")).toBe(true);
+      expect(isEventReference("link:reset")).toBe(true);
       expect(isEventReference("scroll")).toBe(true);
       expect(isEventReference("if")).toBe(false);
     });

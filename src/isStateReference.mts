@@ -4,7 +4,7 @@
  * @returns A boolean indicating if the name represents a state reference.
  */
 export const isStateReference = (name: string) =>
-  name === "if" || name === "x-if";
+  name === "if" || name === "x-if" || name === "link:if";
 
 /* v8 ignore start */
 if (import.meta.vitest) {
@@ -14,6 +14,7 @@ if (import.meta.vitest) {
     it("returns true only for 'if' and 'x-if'", () => {
       expect(isStateReference("if")).toBe(true);
       expect(isStateReference("x-if")).toBe(true);
+      expect(isStateReference("link:if")).toBe(true);
       expect(isStateReference("if:foo")).toBe(false);
     });
   });

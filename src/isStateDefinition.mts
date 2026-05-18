@@ -4,7 +4,9 @@
  * @returns A boolean indicating if the name represents a state definition.
  */
 export const isStateDefinition = (name: string) =>
-  name.startsWith("if:") || name.startsWith("x-if:");
+  name.startsWith("if:") ||
+  name.startsWith("x-if:") ||
+  name.startsWith("link:if:");
 
 /* v8 ignore start */
 if (import.meta.vitest) {
@@ -14,6 +16,7 @@ if (import.meta.vitest) {
     it("returns true only for names starting with 'if:' or 'x-if:'", () => {
       expect(isStateDefinition("if:loading")).toBe(true);
       expect(isStateDefinition("x-if:error")).toBe(true);
+      expect(isStateDefinition("link:if:error")).toBe(true);
       expect(isStateDefinition("on:click")).toBe(false);
     });
   });

@@ -6,8 +6,10 @@
 export const isResultDefinition = (name: string) =>
   name === "result" ||
   name === "x-result" ||
+  name === "link:result" ||
   name === "error" ||
-  name === "x-error";
+  name === "x-error" ||
+  name === "link:error";
 
 /* v8 ignore start */
 if (import.meta.vitest) {
@@ -17,8 +19,10 @@ if (import.meta.vitest) {
     it("returns true only for result/error variations", () => {
       expect(isResultDefinition("result")).toBe(true);
       expect(isResultDefinition("x-result")).toBe(true);
+      expect(isResultDefinition("link:result")).toBe(true);
       expect(isResultDefinition("error")).toBe(true);
       expect(isResultDefinition("x-error")).toBe(true);
+      expect(isResultDefinition("link:error")).toBe(true);
       expect(isResultDefinition("other")).toBe(false);
     });
   });

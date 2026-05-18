@@ -4,7 +4,7 @@
  * @returns A boolean indicating if the name represents a scroll.
  */
 export const isScroll = (name: string) =>
-  name === "scroll" || name === "x-scroll";
+  name === "scroll" || name === "x-scroll" || name === "link:scroll";
 
 /* v8 ignore start */
 if (import.meta.vitest) {
@@ -14,6 +14,7 @@ if (import.meta.vitest) {
     it("returns true only for 'scroll' and 'x-scroll'", () => {
       expect(isScroll("scroll")).toBe(true);
       expect(isScroll("x-scroll")).toBe(true);
+      expect(isScroll("link:scroll")).toBe(true);
       expect(isScroll("top")).toBe(false);
     });
   });

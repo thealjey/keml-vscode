@@ -9,6 +9,8 @@ import {
 import { docs } from "./data.mts";
 import { getEventDefinitions } from "./getEventDefinitions.mts";
 import { getEventReferences } from "./getEventReferences.mts";
+import { getReferenceDefinitions } from "./getReferenceDefinitions.mts";
+import { getReferenceReferences } from "./getReferenceReferences.mts";
 import { getResultDefinitions } from "./getResultDefinitions.mts";
 import { getResultReferences } from "./getResultReferences.mts";
 import { getStateDefinitions } from "./getStateDefinitions.mts";
@@ -30,9 +32,10 @@ const provideReferences = (
   eventResolver: (cur: Document) => Map<string, Range[]>,
   stateResolver: (cur: Document) => Map<string, Range[]>,
   resultResolver: (cur: Document) => Map<string, Range[]>,
+  referenceResolver: (cur: Document) => Map<string, Range[]>,
   doc: TextDocument,
   position: Position,
-  { isCancellationRequested }: CancellationToken
+  { isCancellationRequested }: CancellationToken,
 ) => {
   if (isCancellationRequested) {
     return;
@@ -40,7 +43,13 @@ const provideReferences = (
 
   return extern.docs
     .get(doc.uri.toString())
-    ?.doRefer(eventResolver, stateResolver, resultResolver, position);
+    ?.doRefer(
+      eventResolver,
+      stateResolver,
+      resultResolver,
+      referenceResolver,
+      position,
+    );
 };
 
 /**
@@ -61,9 +70,10 @@ export const definitionProvider: DefinitionProvider = {
       getEventDefinitions,
       getStateDefinitions,
       getResultDefinitions,
+      getReferenceDefinitions,
       doc,
       position,
-      token
+      token,
     ),
 };
 
@@ -85,9 +95,10 @@ export const referenceProvider: ReferenceProvider = {
       getEventReferences,
       getStateReferences,
       getResultReferences,
+      getReferenceReferences,
       doc,
       position,
-      token
+      token,
     ),
 };
 
@@ -116,7 +127,15 @@ if (import.meta.vitest) {
       const doc = { uri: { toString: fn() } } as any;
 
       // directly call the *real* function, not extern
-      const result = provideReferences(fn(), fn(), fn(), doc, {} as any, token);
+      const result = provideReferences(
+        fn(),
+        fn(),
+        fn(),
+        fn(),
+        doc,
+        {} as any,
+        token,
+      );
 
       expect(result).toBeUndefined();
     });
@@ -129,19 +148,21 @@ if (import.meta.vitest) {
 
       const eRes = fn(),
         sRes = fn(),
-        rRes = fn();
+        rRes = fn(),
+        refRes = fn();
 
       const result = provideReferences(
         eRes,
         sRes,
         rRes,
+        refRes,
         doc,
         "pos" as any,
-        token
+        token,
       );
 
       expect(result).toBe("ok");
-      expect(doRefer).toHaveBeenCalledWith(eRes, sRes, rRes, "pos");
+      expect(doRefer).toHaveBeenCalledWith(eRes, sRes, rRes, refRes, "pos");
     });
 
     it("definitionProvider uses getEvent/State/ResultDefinitions", () => {
@@ -150,16 +171,17 @@ if (import.meta.vitest) {
       definitionProvider.provideDefinition(
         "doc" as any,
         "pos" as any,
-        "token" as any
+        "token" as any,
       );
 
       expect(extern.provideReferences).toHaveBeenCalledWith(
         getEventDefinitions,
         getStateDefinitions,
         getResultDefinitions,
+        getReferenceDefinitions,
         "doc",
         "pos",
-        "token"
+        "token",
       );
     });
 
@@ -170,16 +192,17 @@ if (import.meta.vitest) {
         "doc" as any,
         "pos" as any,
         "ctx" as any,
-        "token" as any
+        "token" as any,
       );
 
       expect(extern.provideReferences).toHaveBeenCalledWith(
         getEventReferences,
         getStateReferences,
         getResultReferences,
+        getReferenceReferences,
         "doc",
         "pos",
-        "token"
+        "token",
       );
     });
   });

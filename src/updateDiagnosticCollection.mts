@@ -3,6 +3,8 @@ import { addReferenceDiagnostics } from "./addReferenceDiagnostics.mts";
 import { docs, getDiagnosticCollection } from "./data.mts";
 import { getEventDefinitions } from "./getEventDefinitions.mts";
 import { getEventReferences } from "./getEventReferences.mts";
+import { getReferenceDefinitions } from "./getReferenceDefinitions.mts";
+import { getReferenceReferences } from "./getReferenceReferences.mts";
 import { getResultDefinitions } from "./getResultDefinitions.mts";
 import { getResultReferences } from "./getResultReferences.mts";
 import { getStateDefinitions } from "./getStateDefinitions.mts";
@@ -28,21 +30,28 @@ export const updateDiagnosticCollection = () => {
       cur,
       getEventDefinitions,
       getEventReferences,
-      "event"
+      "event",
     );
     extern.addReferenceDiagnostics(
       diagnostics,
       cur,
       getStateDefinitions,
       getStateReferences,
-      "state"
+      "state",
     );
     extern.addReferenceDiagnostics(
       diagnostics,
       cur,
       getResultDefinitions,
       getResultReferences,
-      "result"
+      "result",
+    );
+    extern.addReferenceDiagnostics(
+      diagnostics,
+      cur,
+      getReferenceDefinitions,
+      getReferenceReferences,
+      "reference",
     );
     diagnosticCollection.set(cur.uri, diagnostics.concat(cur.diagnostics));
   }
@@ -90,16 +99,18 @@ if (import.meta.vitest) {
       expect(diagCollection.clear).toHaveBeenCalled();
 
       // addReferenceDiagnostics called 3 times per doc
-      expect(extern.addReferenceDiagnostics).toHaveBeenCalledTimes(6);
+      expect(extern.addReferenceDiagnostics).toHaveBeenCalledTimes(8);
 
       // set called once per doc with combined diagnostics
       expect(diagCollection.set).toHaveBeenCalledWith("uri1", [
         "new",
         "new",
         "new",
+        "new",
         "old1",
       ]);
       expect(diagCollection.set).toHaveBeenCalledWith("uri2", [
+        "new",
         "new",
         "new",
         "new",

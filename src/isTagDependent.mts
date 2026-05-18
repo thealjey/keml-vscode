@@ -29,7 +29,9 @@ export const isTagDependent =
   (tag: string, name: string) =>
     isDependent(name) ||
     (((tags = dependentTags.get(name)) ||
-      (name.startsWith("x-") && (tags = dependentTags.get(name.slice(2))))) &&
+      (name.startsWith("x-") && (tags = dependentTags.get(name.slice(2)))) ||
+      (name.startsWith("link:") &&
+        (tags = dependentTags.get(name.slice(5))))) &&
       !tags.includes(tag));
 
 /* v8 ignore start */
@@ -61,6 +63,14 @@ if (import.meta.vitest) {
 
     it("false if name starts with x- and sliced tags include tag", () => {
       expect(isTagDependent(() => false, test)("a", "x-href")).toBe(false);
+    });
+
+    it("true if name starts with link: and sliced tags do not include tag", () => {
+      expect(isTagDependent(() => false, test)("div", "link:href")).toBe(true);
+    });
+
+    it("false if name starts with link: and sliced tags include tag", () => {
+      expect(isTagDependent(() => false, test)("a", "link:href")).toBe(false);
     });
 
     it("false if name is not found in dependentTags", () => {

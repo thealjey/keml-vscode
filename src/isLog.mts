@@ -3,7 +3,8 @@
  * @param name - The name to check.
  * @returns A boolean indicating if the name represents a log.
  */
-export const isLog = (name: string) => name === "log" || name === "x-log";
+export const isLog = (name: string) =>
+  name === "log" || name === "x-log" || name === "link:log";
 
 /* v8 ignore start */
 if (import.meta.vitest) {
@@ -13,6 +14,7 @@ if (import.meta.vitest) {
     it("returns true only for 'log' and 'x-log'", () => {
       expect(isLog("log")).toBe(true);
       expect(isLog("x-log")).toBe(true);
+      expect(isLog("link:log")).toBe(true);
       expect(isLog("top")).toBe(false);
     });
   });

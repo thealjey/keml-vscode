@@ -11,12 +11,15 @@ import { getLanguageIds } from "./data.mts";
 import { expandEventAttr } from "./expandEventAttr.mts";
 import { getEventDefinitions } from "./getEventDefinitions.mts";
 import { getEventValue } from "./getEventValue.mts";
+import { getReferenceDefinitions } from "./getReferenceDefinitions.mts";
+import { getReferenceValue } from "./getReferenceValue.mts";
 import { getResultDefinitions } from "./getResultDefinitions.mts";
 import { getResultValue } from "./getResultValue.mts";
 import { getStateDefinitions } from "./getStateDefinitions.mts";
 import { getStateValue } from "./getStateValue.mts";
 import { isAllowedAttr } from "./isAllowedAttr.mts";
 import { isEventReference } from "./isEventReference.mts";
+import { isReferenceReference } from "./isReferenceReference.mts";
 import { isResultReference } from "./isResultReference.mts";
 import { isStateReference } from "./isStateReference.mts";
 import { mergeDefinitions } from "./mergeDefinitions.mts";
@@ -67,6 +70,13 @@ const provider: IHTMLDataProvider = {
 
     if (extern.isResultReference(attribute)) {
       return extern.provideActionValues(getResultDefinitions, getResultValue);
+    }
+
+    if (extern.isReferenceReference(attribute)) {
+      return extern.provideActionValues(
+        getReferenceDefinitions,
+        getReferenceValue,
+      );
     }
 
     let tagged = extern.providedValues.get(tag);
@@ -122,6 +132,7 @@ let extern = {
   isEventReference,
   provideActionValues,
   isResultReference,
+  isReferenceReference,
   isStateReference,
   providedValues,
   mergeDefinitions,
@@ -189,6 +200,14 @@ if (import.meta.vitest) {
         getResultDefinitions,
         getResultValue,
       );
+
+      extern.isResultReference = fn(() => false) as any;
+      extern.isReferenceReference = fn(() => true) as any;
+      expect(provider.provideValues("tag", "attr")).toEqual([conv]);
+      expect(extern.provideActionValues).toHaveBeenCalledWith(
+        getReferenceDefinitions,
+        getReferenceValue,
+      );
     });
 
     it("provideValues caches merged results for non-reference attributes", () => {
@@ -197,6 +216,7 @@ if (import.meta.vitest) {
       extern.isEventReference = fn(() => false) as any;
       extern.isStateReference = fn(() => false) as any;
       extern.isResultReference = fn(() => false) as any;
+      extern.isReferenceReference = fn(() => false) as any;
       extern.staticProvider = staticProvider;
       extern.providedValues = new Map();
 

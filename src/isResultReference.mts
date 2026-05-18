@@ -4,7 +4,7 @@
  * @returns A boolean indicating if the name represents a result reference.
  */
 export const isResultReference = (name: string) =>
-  name === "render" || name === "x-render";
+  name === "render" || name === "x-render" || name === "link:render";
 
 /* v8 ignore start */
 if (import.meta.vitest) {
@@ -14,6 +14,7 @@ if (import.meta.vitest) {
     it("returns true only for 'render' and 'x-render'", () => {
       expect(isResultReference("render")).toBe(true);
       expect(isResultReference("x-render")).toBe(true);
+      expect(isResultReference("link:render")).toBe(true);
       expect(isResultReference("result")).toBe(false);
     });
   });

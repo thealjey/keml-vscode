@@ -5,7 +5,9 @@
  * @returns True if the name represents an event filter, otherwise false.
  */
 export const isEventFilter = (name: string) =>
-  name.startsWith("event:") || name.startsWith("x-event:");
+  name.startsWith("event:") ||
+  name.startsWith("x-event:") ||
+  name.startsWith("link:event:");
 
 /* v8 ignore start */
 if (import.meta.vitest) {
@@ -15,6 +17,7 @@ if (import.meta.vitest) {
     it("returns true only for names starting with 'event:' or 'x-event:'", () => {
       expect(isEventFilter("event:click")).toBe(true);
       expect(isEventFilter("x-event:submit")).toBe(true);
+      expect(isEventFilter("link:event:submit")).toBe(true);
       expect(isEventFilter("on:click")).toBe(false);
     });
   });
