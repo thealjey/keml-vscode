@@ -67,11 +67,11 @@
   "devDependencies": {
     "@types/node": "24.x",
     "@types/vscode": "^1.120.0",
-    "@vitest/coverage-v8": "^4.1.6",
+    "@vitest/coverage-v8": "^4.1.7",
     "@vscode/vsce": "^3.9.1",
-    "dependency-cruiser": "^17.4.0",
+    "dependency-cruiser": "^17.4.2",
     "esbuild": "^0.28.0",
-    "vitest": "^4.1.6",
+    "vitest": "^4.1.7",
     "vscode-html-languageservice": "^5.6.2"
   },
   "displayName": "KEML",
@@ -117,13 +117,13 @@
     "url": "https://github.com/thealjey/keml-vscode.git"
   },
   "scripts": {
-    "compile": "esbuild src/extension.mts --bundle --outdir=out --external:vscode --external:node:path --format=cjs --define:import.meta.vitest=false --minify",
+    "build": "esbuild src/extension.mts --bundle --outdir=out --external:vscode --external:node:path --format=cjs --define:import.meta.vitest=false --minify",
     "package": "vsce package",
-    "precompile": "depcruise --config .dependency-cruiser.mjs 'src/*.mts'",
+    "prebuild": "depcruise --config bin/cycles.mjs 'src/**/*.mts'",
     "publish": "vsce publish",
-    "test": "vitest run",
-    "vscode:prepublish": "npm run compile",
+    "test": "vitest run -c bin/test.mts",
+    "vscode:prepublish": "npm run build",
     "watch": "esbuild src/extension.mts --bundle --outdir=out --external:vscode --external:node:path --format=cjs --define:import.meta.vitest=false --sourcemap --watch=forever &"
   },
-  "version": "0.1.2"
+  "version": "0.2.0"
 }

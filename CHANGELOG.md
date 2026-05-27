@@ -1,3 +1,11 @@
+## 0.2.0
+
+- unified action type registration system
+- fixed possible configuration race conditions
+- added missing autocompletion and tooltips for all attributes and their values
+- added rename symbol functionality
+- added highlight symbol functionality
+
 ## 0.1.2
 
 - support for `link:` presence hinting

@@ -1,8 +1,6 @@
 # KEML for VSCode
 
 ![License](https://img.shields.io/github/license/thealjey/keml-vscode)
-![Open Issues](https://img.shields.io/github/issues/thealjey/keml-vscode)
-![Open PRs](https://img.shields.io/github/issues-pr/thealjey/keml-vscode)
 [![Docs](https://img.shields.io/badge/docs-online-blue)](https://thealjey.github.io/keml/)
 
 Enhance your HTML with
@@ -30,14 +28,12 @@ and diagnostics for KEML attributes.
 - **Hover tooltips**  
   Hover over an attribute or value to see its description and usage examples.
 - **Go to Definition / References**
-
   - Jump directly to where an action is defined and/or used.
   - Navigate across your codebase to trace how actions are triggered and
     handled.
 
 - **Diagnostics**  
   Inline error and warning reporting for invalid usage:
-
   - Flags attributes that do not work because another required attribute is
     missing.
   - Highlights unused actions, so you know which ones are safe to remove.

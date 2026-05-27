@@ -42,5 +42,6 @@
     "out": true
   },
   "terminal.integrated.stickyScroll.enabled": false,
-  "workbench.tree.enableStickyScroll": false
+  "workbench.tree.enableStickyScroll": false,
+  "editor.acceptSuggestionOnCommitCharacter": false
 }

@@ -1,32 +1,22 @@
 {
-	"compilerOptions": {
-		"allowImportingTsExtensions": true,
-		"allowUnreachableCode": false,
-		"allowUnusedLabels": false,
-		"checkJs": true,
-		"exactOptionalPropertyTypes": true,
-		"lib": [
-			"ES2022"
-		],
-		"module": "Node16",
-		"noEmit": true,
-		"noImplicitOverride": true,
-		"noImplicitReturns": true,
-		"noPropertyAccessFromIndexSignature": true,
-		"noUncheckedIndexedAccess": true,
-		"noUncheckedSideEffectImports": true,
-		"noUnusedLocals": true,
-		"noUnusedParameters": true,
-		"sourceMap": true,
-		"strict": true,
-		"target": "ES2022",
-		"types": [
-			"vitest/importMeta"
-		]
-	},
-	"include": [
-		"src/*",
-		".dependency-cruiser.mjs",
-		"vitest.config.mts"
-	]
+  "compilerOptions": {
+    "allowImportingTsExtensions": true,
+    "allowUnreachableCode": false,
+    "allowUnusedLabels": false,
+    "checkJs": true,
+    "exactOptionalPropertyTypes": true,
+    "lib": ["ES2022"],
+    "module": "Node16",
+    "noEmit": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noUncheckedIndexedAccess": true,
+    "noUncheckedSideEffectImports": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "sourceMap": true,
+    "strict": true,
+    "target": "ES2022"
+  },
+  "include": ["src/**/*", "bin/**/*"]
 }
