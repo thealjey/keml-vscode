@@ -421,6 +421,21 @@ otherwise similar-looking elements.
       },
     },
     {
+      name: "transition",
+      valueSet: "v",
+      description: {
+        kind: MarkupKind.Markdown,
+        value: `**Attribute**: \`transition\`
+
+* Enables View Transitions for the \`render\` attribute.
+
+💡 Example:
+\`\`\`html
+<div render="foo" transition></div>
+\`\`\``,
+      },
+    },
+    {
       name: "if:intersects",
       description: {
         kind: MarkupKind.Markdown,

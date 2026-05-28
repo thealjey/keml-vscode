@@ -125,5 +125,5 @@
     "vscode:prepublish": "npm run build",
     "watch": "esbuild src/extension.mts --bundle --outdir=out --external:vscode --external:node:path --format=cjs --define:import.meta.vitest=false --sourcemap --watch=forever &"
   },
-  "version": "0.2.0"
+  "version": "0.2.1"
 }

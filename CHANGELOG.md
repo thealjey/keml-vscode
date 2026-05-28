@@ -1,3 +1,7 @@
+## 0.2.1
+
+- added support for the `transition` attribute
+
 ## 0.2.0
 
 - unified action type registration system
