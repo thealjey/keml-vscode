@@ -69,7 +69,7 @@
     "@types/vscode": "^1.120.0",
     "@vitest/coverage-v8": "^4.1.7",
     "@vscode/vsce": "^3.9.1",
-    "dependency-cruiser": "^17.4.2",
+    "dependency-cruiser": "^17.4.3",
     "esbuild": "^0.28.0",
     "vitest": "^4.1.7",
     "vscode-html-languageservice": "^5.6.2"
@@ -125,5 +125,5 @@
     "vscode:prepublish": "npm run build",
     "watch": "esbuild src/extension.mts --bundle --outdir=out --external:vscode --external:node:path --format=cjs --define:import.meta.vitest=false --sourcemap --watch=forever &"
   },
-  "version": "0.2.1"
+  "version": "0.2.2"
 }

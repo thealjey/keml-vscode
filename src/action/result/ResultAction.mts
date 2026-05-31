@@ -10,7 +10,7 @@ export class ResultAction extends Action {
     [/^result$/, []],
     [/^error$/, []],
   ];
-  override input: Channel[] = [[/^render$/, [/^position$/, /^transition$/]]];
+  override input: Channel[] = [[/^render$/, [/^(position|transition)$/]]];
   override options: Options[] = [
     [
       /^position$/,

@@ -16,7 +16,7 @@ export class EventAction extends Action {
       /^on$/,
       [
         /^h-/,
-        /^(debounce|error|if:error|if:loading|once|redirect|throttle|method)$/,
+        /^(debounce|error|if:error|if:loading|once|redirect|throttle|method|stream)$/,
       ],
     ],
     [/^reset$/, []],

@@ -1,3 +1,7 @@
+## 0.2.2
+
+- added support for the `stream` attribute
+
 ## 0.2.1
 
 - added support for the `transition` attribute

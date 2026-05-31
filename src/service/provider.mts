@@ -85,6 +85,21 @@ const customData: HTMLDataV1 = {
       },
     },
     {
+      name: "stream",
+      valueSet: "v",
+      description: {
+        kind: MarkupKind.Markdown,
+        value: `**Attribute**: \`stream\`
+
+* Enables response streaming for the \`on\` attribute.
+
+💡 Example:
+\`\`\`html
+<div on="foo" stream></div>
+\`\`\``,
+      },
+    },
+    {
       name: "debounce",
       description: {
         kind: MarkupKind.Markdown,
