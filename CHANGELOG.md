@@ -1,3 +1,7 @@
+## 0.2.3
+
+- fixed reference action `measure` dependency checking
+
 ## 0.2.2
 
 - added support for the `stream` attribute

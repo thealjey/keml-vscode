@@ -8,10 +8,10 @@ import { getReferenceAttrs } from "./getReferenceAttrs.mts";
  */
 export class ReferenceAction extends Action {
   override name: string = "reference";
-  override otherPrefix: string[] = ["ref:", "link:"];
+  override otherPrefix: string[] = ["link:"];
   override output: Channel[] = [
     [/^ref:/, []],
-    [/^ref:(width|height)$/, [/^measure$/]],
+    [/^(ref:width|ref:height)$/, [/^measure$/]],
   ];
   override input: Channel[] = [[/^link:/, []]];
   override options: Options[] = [
