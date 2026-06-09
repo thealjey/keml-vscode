@@ -176,6 +176,28 @@ request or performing a redirect, it calls the element's \`reset\` method.
       },
     },
     {
+      name: "clear-timeout",
+      description: {
+        kind: MarkupKind.Markdown,
+        value: `**Attribute**: \`clear-timeout\`
+
+Accepts a single event action, just like \`on\`, but instead of sending a
+request or performing a redirect, it calls the global \`clearTimeout\` function
+with the value of the \`timeoutId\` property of the element instance.
+
+This field can be exposed by a WebComponent or set by \`debounce\`/\`throttle\`.
+
+💡 Example:
+\`\`\`html
+<form on:submit="foo bar" on="foo" debounce="100" clear-timeout="bar">
+  <button>click me</button>
+</form>
+\`\`\`
+→ The form is never submitted, since it is scheduled by \`foo\` and immediately
+  unscheduled by \`bar\`.`,
+      },
+    },
+    {
       name: "scroll",
       description: {
         kind: MarkupKind.Markdown,

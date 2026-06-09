@@ -1,3 +1,8 @@
+## 0.2.4
+
+- added support for the `clear-timeout` attribute
+- fixed attribute duplication under certain conditions
+
 ## 0.2.3
 
 - fixed reference action `measure` dependency checking

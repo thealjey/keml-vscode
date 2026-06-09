@@ -31,6 +31,8 @@ and diagnostics for KEML attributes.
   - Jump directly to where an action is defined and/or used.
   - Navigate across your codebase to trace how actions are triggered and
     handled.
+- **Rename Symbol**  
+  Rename actions across your entire workspace with a simple `F2` press.
 
 - **Diagnostics**  
   Inline error and warning reporting for invalid usage:
@@ -44,6 +46,8 @@ and diagnostics for KEML attributes.
 - **Smooth workflow integration**  
   Works out of the box with HTML and can be enabled for any file containing
   HTML-like syntax via the `keml.languageIds` setting.
+
+- etc
 
 ---
 

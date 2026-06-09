@@ -20,6 +20,7 @@ export class EventAction extends Action {
       ],
     ],
     [/^reset$/, []],
+    [/^clear-timeout$/, []],
     [/^scroll$/, [/^(relative|behavior|top|left)$/]],
   ];
   override other: Channel[] = [

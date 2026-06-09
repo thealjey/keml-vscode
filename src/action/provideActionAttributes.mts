@@ -5,9 +5,11 @@ import { actions } from "./actions.mts";
  * Returns the original attribute along with any additional attributes
  * contributed by registered actions.
  */
-export const provideActionAttributes = (
+export function provideActionAttributes(
+  this: boolean,
   attr: IAttributeData,
-): IAttributeData[] => [
-  attr,
-  ...actions.flatMap(action => action.provideAttributes(attr)),
-];
+): IAttributeData[] {
+  const provided = actions.flatMap(action => action.provideAttributes(attr));
+
+  return this ? [attr, ...provided] : provided;
+}
