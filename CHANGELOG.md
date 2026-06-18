@@ -1,3 +1,9 @@
+## 0.2.5
+
+- Reverted the previous completion-item deduplication logic. VS Code fills in
+  defaults inconsistently, causing some completion entries to disappear
+  entirely. Occasional duplicates are preferable to missing completions.
+
 ## 0.2.4
 
 - added support for the `clear-timeout` attribute

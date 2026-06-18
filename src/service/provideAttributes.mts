@@ -19,13 +19,9 @@ export const provideAttributes = (tag: string) => {
     providedAttributes.set(
       tag,
       (tagged = mergeDefinitions(
-        staticProvider
-          .provideAttributes(tag)
-          .flatMap(provideActionAttributes, true),
-        defaultProvider
-          .provideAttributes(tag)
-          .flatMap(provideActionAttributes, false),
-      )),
+        staticProvider.provideAttributes(tag),
+        defaultProvider.provideAttributes(tag),
+      )).flatMap(provideActionAttributes),
     );
   }
 
