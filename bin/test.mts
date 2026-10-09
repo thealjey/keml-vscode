@@ -11,5 +11,8 @@ export default defineConfig({
       thresholds: { 100: true },
     },
     includeSource: ["src/**/*.mts"],
+    isolate: false,
+    pool: "threads",
+    fsModuleCache: true,
   },
 });

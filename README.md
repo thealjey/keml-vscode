@@ -151,6 +151,11 @@ file scanning behavior.
   ["**/templates/**", "**/build/**"]
   ```
 
+### Other
+
+- **`keml.warnOnLogAttribute`** (default: `true`)  
+  Display a warning when the `log` attribute is used.
+
 ---
 
 ## FAQs

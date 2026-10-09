@@ -1,3 +1,8 @@
+## 0.3.0
+
+- added support for the opposite of required attributes - conflicting attributes
+- documented the new upstream features: `request-mode`, `timeout`, `if:timeout`
+
 ## 0.2.5
 
 - Reverted the previous completion-item deduplication logic. VS Code fills in

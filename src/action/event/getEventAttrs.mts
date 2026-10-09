@@ -21,6 +21,7 @@ export const CUSTOM_EVENT_DESCRIPTIONS: Record<string, string> = {
 * Even actions on elements rendered dynamically through this response will fire
   correctly.
 * Useful for chaining actions after dynamic updates.`,
+  timeout: `* Triggered **when a server request times out**.`,
   discover: `* Triggered **when the element is first discovered**.
 * Will be re-emitted if the \`on:discover\` attribute is removed and then added back again.`,
 };

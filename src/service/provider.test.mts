@@ -17,10 +17,10 @@ vi.mock("./mergeDefinitions.mts", () => ({
   mergeDefinitions: vi.fn((a, b) => [...a, ...b]),
 }));
 
-import { defaultProvider, provideTags, staticProvider } from "./provider.mts";
-
 describe("provideTags", () => {
-  it("returns merged static + default tags", () => {
+  it("returns merged static + default tags", async () => {
+    const { defaultProvider, provideTags, staticProvider } =
+      await import("./provider.mts");
     const result = provideTags();
 
     expect(result).toEqual([{ name: "staticTag" }, { name: "defaultTag" }]);

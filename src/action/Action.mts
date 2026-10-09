@@ -8,13 +8,17 @@ export type Options =
   | [RegExp, RegExp, string, string[]]
   | [RegExp, RegExp, string, string[], any];
 
-export type Channel = [RegExp, RegExp[]] | [RegExp, RegExp[], boolean];
+export type Parent = RegExp | ["not", RegExp];
+export type Channel = [Parent, RegExp[]] | [Parent, RegExp[], boolean];
 
 const INPUT_INVALID = `Action input channels can only hold one value and are used verbatim.
 Make sure the action name does not contain spaces.`;
 
 const DEPENDENCY_VIOLATION = t`${"name"} is inactive.
 Needs: ${"depends"} (or a ${"prefixes"} prefixed alternative).`;
+
+const COMPATIBILITY_VIOLATION = t`${"name"} is inactive.
+Incompatible with: ${"depends"} (or a ${"prefixes"} prefixed alternative).`;
 
 const OPTION_VIOLATION = t`Invalid ${"label|1"}.
 Expected: ${"options"}.
@@ -61,7 +65,7 @@ export class Action {
     node,
   }: Attr): Diagnostic[] {
     const result: Diagnostic[] = [];
-    let diagnostic: Diagnostic, dependency: [RegExp, RegExp] | undefined;
+    let diagnostic: Diagnostic, dependency: [Parent, RegExp] | undefined;
 
     if (this.isInput(name)) {
       if (!value) {
@@ -97,7 +101,9 @@ export class Action {
       }
 
       if (!tagOverride) {
-        let [{ source }, child] = dependency;
+        const [parent, child] = dependency;
+        const par = Array.isArray(parent) ? parent : ([null, parent] as const);
+        let { source } = par[1];
         let depends: string[];
 
         if (!source.endsWith("$")) {
@@ -112,7 +118,7 @@ export class Action {
         }
         diagnostic = new Diagnostic(
           fullRange,
-          DEPENDENCY_VIOLATION({
+          (par[0] === "not" ? COMPATIBILITY_VIOLATION : DEPENDENCY_VIOLATION)({
             name: trimmed,
             depends,
             prefixes: this.combinedPrefixes,
@@ -166,20 +172,25 @@ export class Action {
     node: Node,
     name: string,
     suppress?: boolean,
-  ): [RegExp, RegExp] | undefined {
+  ): [Parent, RegExp] | undefined {
     const attrNames = Array.from(node.attributes.keys(), this.combinedBaseName);
     name = this.combinedBaseName(name);
 
-    for (const channel of [this.output, this.input, this.other]) {
+    for (const channel of [this.other, this.output, this.input]) {
       for (const [parent, children, keep] of channel) {
+        const par = Array.isArray(parent) ? parent : ([null, parent] as const);
         for (const child of children) {
           if (child.test(name)) {
             for (const attrName of attrNames) {
-              if (parent.test(attrName) || this.testParent(attrName, name)) {
-                return;
+              if (par[1].test(attrName) || this.testParent(attrName, name)) {
+                return par[0] === "not" && (!keep || suppress) ?
+                    [parent, child]
+                  : undefined;
               }
             }
-            return !keep || suppress ? [parent, child] : undefined;
+            return par[0] !== "not" && (!keep || suppress) ?
+                [parent, child]
+              : undefined;
           }
         }
       }
@@ -190,7 +201,9 @@ export class Action {
    * Checks whether a name matches any pattern in a given channel definition.
    */
   checkName(name: string, patterns: Channel[]) {
-    return patterns.some(([pattern]) => pattern.test(name));
+    return patterns.some(([pattern]) =>
+      (Array.isArray(pattern) ? pattern[1] : pattern).test(name),
+    );
   }
 
   /**

@@ -16,7 +16,7 @@ export class EventAction extends Action {
       /^on$/,
       [
         /^h-/,
-        /^(debounce|error|if:error|if:loading|once|redirect|throttle|method|stream)$/,
+        /^(debounce|error|if:error|if:loading|if:timeout|once|redirect|throttle|method|stream|timeout|request-mode)$/,
       ],
     ],
     [/^reset$/, []],
@@ -28,10 +28,14 @@ export class EventAction extends Action {
       /^(on|sse)$/,
       [/^(credentials|delete|get|post|put|result|href|action|src)$/],
     ],
+    // the true means - scroll depends on top or left, but we still want to
+    // suggest it in the autocomplete
     [/^(top|left)$/, [/^scroll$/], true],
+    [["not", /^stream$/], [/^(timeout|request-mode)$/]],
   ];
   override options: Options[] = [
-    [/^(debounce|throttle)$/, /^\d+(?:\.\d+)?$/, "rate limit", ["<number>"], 0],
+    [/^(debounce|throttle)$/, /^\d+(?:\.\d+)?$/, "rate limit", ["<number>"]],
+    [/^timeout$/, /^\d+(?:\.\d+)?$/, "timeout", ["<number>"]],
     [
       /^behavior$/,
       /^(auto|instant|smooth)$/,
@@ -50,6 +54,13 @@ export class EventAction extends Action {
       /^(pushState|replaceState|assign|replace)$/,
       "redirect",
       ["pushState", "replaceState", "assign", "replace"],
+    ],
+    [
+      /^request-mode$/,
+      /^(parallel|replace|ignore|queue)$/,
+      "request mode",
+      ["parallel", "replace", "ignore", "queue"],
+      "parallel",
     ],
   ];
   override tags: [string, RegExp][] = [

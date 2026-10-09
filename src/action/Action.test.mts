@@ -245,4 +245,57 @@ describe("actions", () => {
     expect(action.isInput("foo")).toBeFalsy();
     expect(action.isInput("bar")).toBeTruthy();
   });
+
+  it("provideDiagnostics - compatibility", () => {
+    action.rejectAttribute = () => [["not", /./], /./];
+    expect(
+      action.provideDiagnostics({
+        name: "foo",
+        node: "bar",
+        fullRange: "baz",
+      } as any),
+    ).toMatchObject([
+      { range: "baz", message: "tpl", severity: "warn", tags: ["un"] },
+    ]);
+    expect((t as any)()).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: "oo",
+        depends: ["o"],
+        prefixes: ["a", "b"],
+      }),
+    );
+  });
+
+  it("rejectAttribute - not parent, matching attribute", () => {
+    action.other = [[["not", /^r$/], [/^o$/]]];
+    expect(
+      action.rejectAttribute(
+        { attributes: new Map([["bar", null]]) } as any,
+        "foo",
+      ),
+    ).toMatchObject([["not", /^r$/], /^o$/]);
+  });
+
+  it("rejectAttribute - not parent, no matching attribute", () => {
+    action.other = [[["not", /^r$/], [/^o$/]]];
+    expect(
+      action.rejectAttribute({ attributes: new Map() } as any, "foo"),
+    ).toBeUndefined();
+  });
+
+  it("rejectAttribute - not parent, suppress", () => {
+    action.other = [[["not", /^r$/], [/^o$/], true]];
+    expect(
+      action.rejectAttribute(
+        { attributes: new Map([["bar", null]]) } as any,
+        "foo",
+        true,
+      ),
+    ).toMatchObject([["not", /^r$/], /^o$/]);
+  });
+
+  it("checkName - not pattern", () => {
+    expect(action.checkName("foo", [[["not", /^bar$/]]] as any)).toBeFalsy();
+    expect(action.checkName("bar", [[["not", /^bar$/]]] as any)).toBeTruthy();
+  });
 });

@@ -100,6 +100,45 @@ const customData: HTMLDataV1 = {
       },
     },
     {
+      name: "timeout",
+      description: {
+        kind: MarkupKind.Markdown,
+        value: `**Attribute**: \`timeout\`
+
+* Specifies a **timeout in milliseconds**.
+* Aborts the request if a response is not received within the specified time.
+
+💡 Example:
+\`\`\`html
+<div on="search" timeout="300"></div>
+\`\`\`
+→ This element will wait at most 300ms for a response from the server.`,
+      },
+    },
+    {
+      name: "request-mode",
+      valueSet: "requestMode",
+      description: {
+        kind: MarkupKind.Markdown,
+        value: `**Attribute**: \`request-mode\`
+
+This feature controls how requests and their responses are handled when an
+element sends multiple requests before the previous ones have concluded.
+
+Supported options:
+
+* \`parallel\` - (default) all requests are permitted, and responses are
+  processed in the order they are received from the server
+* \`replace\` - when a new request is made, all currently pending requests are
+  cancelled first
+* \`ignore\` - if there are pending requests, skip this one
+* \`queue\` - like with \`parallel\`, all requests are sent immediately, but
+  responses are processed in the same order as the requests were sent, rather
+  than in the order the responses arrived
+`,
+      },
+    },
+    {
       name: "debounce",
       description: {
         kind: MarkupKind.Markdown,
@@ -526,6 +565,25 @@ otherwise similar-looking elements.
 \`\`\`
 → The \`isError\` state turns ON if the request fails, temporarily applying
   reactive attributes on subscriber elements.`,
+      },
+    },
+    {
+      name: "if:timeout",
+      description: {
+        kind: MarkupKind.Markdown,
+        value: `**Attribute**: \`if:timeout\`
+
+* Declares one or more **state actions** to turn OFF immediately **before** a
+  request starts, and ON if the request **times out** (takes longer than the
+  \`timeout\` attribute allows).
+
+💡 Example:
+\`\`\`html
+<input on="loadData" get="/non-existent" if:timeout="isTimeout">
+<div if="isTimeout" x-style="color: yellow">Request timed out</div>
+\`\`\`
+→ The \`isTimeout\` state turns ON if the request times out, temporarily
+  applying reactive attributes on subscriber elements.`,
       },
     },
     {
@@ -961,6 +1019,47 @@ A numeric value representing a scroll offset in pixels.
 - Negative values scroll backward (up or left) when used with \`relative\`.
 
 When used without \`relative\`, negative values have undefined behavior.`,
+          },
+        },
+      ],
+    },
+    {
+      name: "requestMode",
+      values: [
+        {
+          name: "parallel",
+          description: {
+            kind: MarkupKind.Markdown,
+            value: `**Value**: \`parallel\` (default)
+
+Process each response as soon as it is ready.`,
+          },
+        },
+        {
+          name: "replace",
+          description: {
+            kind: MarkupKind.Markdown,
+            value: `**Value**: \`replace\`
+
+Cancel/discard all existing requests before proceeding.`,
+          },
+        },
+        {
+          name: "queue",
+          description: {
+            kind: MarkupKind.Markdown,
+            value: `**Value**: \`queue\`
+
+Process responses in the order the requests were sent.`,
+          },
+        },
+        {
+          name: "ignore",
+          description: {
+            kind: MarkupKind.Markdown,
+            value: `**Value**: \`ignore\`
+
+Do nothing if another request is currently active.`,
           },
         },
       ],

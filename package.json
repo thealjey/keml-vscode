@@ -71,17 +71,17 @@
   "description": "IntelliSense for KEML in Visual Studio Code.",
   "devDependencies": {
     "@types/node": "24.x",
-    "@types/vscode": "^1.125.0",
-    "@vitest/coverage-v8": "^4.1.9",
-    "@vscode/vsce": "^3.9.2",
-    "dependency-cruiser": "^17.4.3",
-    "esbuild": "^0.28.1",
-    "vitest": "^4.1.9",
+    "@types/vscode": "^1.140.0",
+    "@vitest/coverage-v8": "^5.0.3",
+    "@vscode/vsce": "^4.0.0",
+    "dependency-cruiser": "^18.5.0",
+    "esbuild": "^0.28.2",
+    "vitest": "^5.0.3",
     "vscode-html-languageservice": "^5.6.2"
   },
   "displayName": "KEML",
   "engines": {
-    "vscode": "^1.125.0"
+    "vscode": "^1.140.0"
   },
   "extensionDependencies": [
     "vscode.html",
@@ -130,5 +130,5 @@
     "vscode:prepublish": "npm run build",
     "watch": "esbuild src/extension.mts --bundle --outdir=out --external:vscode --external:node:path --format=cjs --define:import.meta.vitest=false --sourcemap --watch=forever &"
   },
-  "version": "0.2.5"
+  "version": "0.3.0"
 }
